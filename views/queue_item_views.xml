@@ -1,10 +1,9 @@
-
 <odoo>
-  <record id="view_work_queue_item_tree" model="ir.ui.view">
-    <field name="name">work.queue.item.tree</field>
+  <record id="view_work_queue_item_list" model="ir.ui.view">
+    <field name="name">work.queue.item.list</field>
     <field name="model">work.queue.item</field>
     <field name="arch" type="xml">
-      <tree>
+      <list>
         <field name="employee_id"/>
         <field name="workcenter_id"/>
         <field name="sequence"/>
@@ -12,7 +11,7 @@
         <field name="state"/>
         <field name="production_id"/>
         <field name="product_id"/>
-      </tree>
+      </list>
     </field>
   </record>
 
@@ -41,6 +40,6 @@
   <record id="action_work_queue_item" model="ir.actions.act_window">
     <field name="name">Items de cola</field>
     <field name="res_model">work.queue.item</field>
-    <field name="view_mode">tree,form</field>
+    <field name="view_mode">list,form</field> <!-- antes: tree,form -->
   </record>
 </odoo>
