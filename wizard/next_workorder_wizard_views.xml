@@ -1,0 +1,26 @@
+
+<odoo>
+  <record id="view_next_workorder_wizard" model="ir.ui.view">
+    <field name="name">next.workorder.wizard.form</field>
+    <field name="model">next.workorder.wizard</field>
+    <field name="arch" type="xml">
+      <form string="Siguiente orden">
+        <group>
+          <field name="employee_id"/>
+          <field name="workcenter_id" placeholder="(opcional)"/>
+        </group>
+        <footer>
+          <button string="Siguiente orden" type="object" name="action_take_next" class="btn-primary"/>
+          <button string="Cancelar" class="btn-secondary" special="cancel"/>
+        </footer>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_next_workorder_wizard" model="ir.actions.act_window">
+    <field name="name">Siguiente orden</field>
+    <field name="res_model">next.workorder.wizard</field>
+    <field name="view_mode">form</field>
+    <field name="target">new</field>
+  </record>
+</odoo>

@@ -1,0 +1,6 @@
+
+<odoo>
+  <menuitem id="menu_work_queue_root" name="Cola de trabajo" parent="mrp.menu_mrp_root" sequence="5" groups="mrp.group_mrp_user"/>
+  <menuitem id="menu_work_queue_admin" name="Planificador (Admin)" parent="menu_work_queue_root" sequence="1" groups="mrp_work_queue.group_mrp_queue_admin" action="action_work_queue_plan_by_wc"/>
+  <menuitem id="menu_work_queue_next" name="Siguiente orden (Terminal)" parent="menu_work_queue_root" sequence="2" groups="mrp_work_queue.group_mrp_queue_operator" action="action_next_workorder_wizard"/>
+</odoo>

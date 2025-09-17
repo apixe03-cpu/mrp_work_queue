@@ -1,0 +1,24 @@
+
+<odoo>
+  <record id="view_hr_employee_kanban_queue" model="ir.ui.view">
+    <field name="name">hr.employee.kanban.queue</field>
+    <field name="model">hr.employee</field>
+    <field name="arch" type="xml">
+      <kanban>
+        <templates>
+          <t t-name="kanban-box">
+            <div class="oe_kanban_global_click">
+              <div class="o_kanban_image">
+                <img t-att-src="kanban_image('hr.employee', 'image_128', record.id.raw_value)" class="img img-responsive"/>
+              </div>
+              <div class="oe_kanban_details">
+                <strong><field name="name"/></strong>
+                <div><span>Use el planificador para asignar cola.</span></div>
+              </div>
+            </div>
+          </t>
+        </templates>
+      </kanban>
+    </field>
+  </record>
+</odoo>

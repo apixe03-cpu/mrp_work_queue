@@ -1,0 +1,48 @@
+
+<odoo>
+  <record id="view_work_queue_plan_tree" model="ir.ui.view">
+    <field name="name">work.queue.plan.tree</field>
+    <field name="model">work.queue.plan</field>
+    <field name="arch" type="xml">
+      <tree>
+        <field name="workcenter_id"/>
+        <field name="employee_id"/>
+      </tree>
+    </field>
+  </record>
+
+  <record id="view_work_queue_plan_form" model="ir.ui.view">
+    <field name="name">work.queue.plan.form</field>
+    <field name="model">work.queue.plan</field>
+    <field name="arch" type="xml">
+      <form string="Planificador de cola por empleado">
+        <sheet>
+          <group>
+            <field name="workcenter_id" required="1"/>
+            <field name="employee_id" required="1"/>
+          </group>
+          <header>
+            <button name="action_load_available" type="object" string="Cargar disponibles" class="btn-secondary"/>
+          </header>
+          <notebook>
+            <page string="Cola (arrastrar para priorizar)">
+              <field name="line_ids" context="{'default_plan_id': active_id}" >
+                <tree editable="bottom">
+                  <field name="sequence" widget="handle"/>
+                  <field name="workorder_id"/>
+                </tree>
+              </field>
+            </page>
+          </notebook>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_work_queue_plan_by_wc" model="ir.actions.act_window">
+    <field name="name">Planificador</field>
+    <field name="res_model">work.queue.plan</field>
+    <field name="view_mode">tree,form</field>
+    <field name="context">{}</field>
+  </record>
+</odoo>

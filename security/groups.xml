@@ -1,0 +1,13 @@
+
+<odoo>
+  <record id="group_mrp_queue_admin" model="res.groups">
+    <field name="name">MRP Queue: Administrador</field>
+    <field name="category_id" ref="base.module_category_manufacturing"/>
+    <field name="comment">Puede planificar colas por empleado y configurar el módulo</field>
+  </record>
+  <record id="group_mrp_queue_operator" model="res.groups">
+    <field name="name">MRP Queue: Operario</field>
+    <field name="category_id" ref="base.module_category_manufacturing"/>
+    <field name="comment">Puede usar 'Siguiente orden' en terminal</field>
+  </record>
+</odoo>
