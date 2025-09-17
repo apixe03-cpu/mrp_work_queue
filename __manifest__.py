@@ -15,5 +15,5 @@
         "views/employee_views.xml",
         "wizard/next_workorder_wizard_views.xml"
     ],
-    "application": true
+    "application": True
 }
