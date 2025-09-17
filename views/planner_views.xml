@@ -25,7 +25,8 @@
           </header>
           <notebook>
             <page string="Cola (arrastrar para priorizar)">
-              <field name="line_ids" context="{'default_plan_id': active_id}">
+              <!-- SIN context -->
+              <field name="line_ids">
                 <list editable="bottom">
                   <field name="sequence" widget="handle"/>
                   <field name="workorder_id"/>
@@ -41,7 +42,6 @@
   <record id="action_work_queue_plan_by_wc" model="ir.actions.act_window">
     <field name="name">Planificador</field>
     <field name="res_model">work.queue.plan</field>
-    <field name="view_mode">list,form</field> <!-- antes: tree,form -->
-    <field name="context">{}</field>
+    <field name="view_mode">list,form</field>
   </record>
 </odoo>
