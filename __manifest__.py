@@ -1,4 +1,3 @@
-
 {
     "name": "MRP Work Queue (Admin Planner + Next Order)",
     "version": "18.0.1.0.0",
@@ -9,11 +8,12 @@
     "data": [
         "security/groups.xml",
         "security/ir.model.access.csv",
-        "views/menu.xml",
+
         "views/queue_item_views.xml",
-        "views/planner_views.xml",
-        "views/employee_views.xml",
-        "wizard/next_workorder_wizard_views.xml"
+        "views/planner_views.xml",                 # <- define action_work_queue_plan_by_wc
+        "wizard/next_workorder_wizard_views.xml",  # <- define action_next_workorder_wizard
+
+        "views/menu.xml"                           # <- SIEMPRE AL FINAL
     ],
     "application": True
 }
