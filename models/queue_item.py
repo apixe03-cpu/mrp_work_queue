@@ -5,10 +5,8 @@ class WorkQueueItem(models.Model):
     _description = "Work Queue Item"
     _order = "sequence, id"
 
-    # Prioridad dentro de la cola del empleado
     sequence = fields.Integer(default=10)
 
-    # Orden de trabajo (única por item)
     workorder_id = fields.Many2one(
         "mrp.workorder",
         required=True,
@@ -16,31 +14,35 @@ class WorkQueueItem(models.Model):
         index=True,
     )
 
-    # Derivados de la OT
+    # ÚNICO related que guardamos en BD para dominios/índices
     workcenter_id = fields.Many2one(
         related="workorder_id.workcenter_id",
         store=True,
         index=True,
+        readonly=True,
     )
+
+    # Estos NO se almacenan (store=False) → evitamos columnas faltantes
     production_id = fields.Many2one(
         related="workorder_id.production_id",
-        store=True,
+        store=False,
+        readonly=True,
     )
     product_id = fields.Many2one(
         related="workorder_id.product_id",
-        store=True,
+        store=False,
+        readonly=True,
     )
     state = fields.Selection(
         related="workorder_id.state",
-        store=True,
+        store=False,
+        readonly=True,
     )
 
-    # Asignación (None = backlog del centro)
     employee_id = fields.Many2one("hr.employee", index=True)
 
-    # Campos helper para el tablero por plan
-    plan_id = fields.Many2one("work.queue.plan", index=True)               # cola (derecha)
-    plan_backlog_helper_id = fields.Many2one("work.queue.plan", index=True) # backlog (izquierda)
+    plan_id = fields.Many2one("work.queue.plan", index=True)
+    plan_backlog_helper_id = fields.Many2one("work.queue.plan", index=True)
 
     _sql_constraints = [
         ("uniq_workorder", "unique(workorder_id)", "Cada orden de trabajo puede estar en una sola cola."),
