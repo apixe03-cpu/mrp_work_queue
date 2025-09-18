@@ -1,4 +1,5 @@
 <odoo>
+  <!-- Lista -->
   <record id="view_work_queue_plan_list" model="ir.ui.view">
     <field name="name">work.queue.plan.list</field>
     <field name="model">work.queue.plan</field>
@@ -10,11 +11,12 @@
     </field>
   </record>
 
+  <!-- Form con kanban doble -->
   <record id="view_work_queue_plan_form" model="ir.ui.view">
     <field name="name">work.queue.plan.form</field>
     <field name="model">work.queue.plan</field>
     <field name="arch" type="xml">
-      <form string="Planificador de cola por empleado">
+      <form string="Planificador (kanban doble)">
         <sheet>
           <group>
             <field name="workcenter_id" required="1"/>
@@ -23,22 +25,70 @@
           <header>
             <button name="action_load_available" type="object" string="Cargar disponibles" class="btn-secondary"/>
           </header>
-          <notebook>
-            <page string="Cola (arrastrar para priorizar)">
-              <!-- SIN context -->
-              <field name="line_ids">
-                <list editable="bottom">
-                  <field name="sequence" widget="handle"/>
-                  <field name="workorder_id"/>
-                </list>
+
+          <div class="o_row">
+            <!-- IZQUIERDA: backlog -->
+            <div class="o_col-6">
+              <h3>Backlog de <t t-esc="object.workcenter_id.display_name"/></h3>
+              <field name="backlog_item_ids"
+                    widget="kanban"
+                    options="{'no_edit': True, 'no_create': True, 'mrp_dual_kanban': 'backlog'}"
+                    context="{'plan_employee_id': object.employee_id.id}">
+                <kanban>
+                  <templates>
+                    <t t-name="kanban-box">
+                      <div class="oe_kanban_global_click">
+                        <div class="o_kanban_record_title">
+                          <t t-esc="record.workorder_id.value"/>
+                        </div>
+                        <div class="o_kanban_tags">
+                          <t t-if="record.employee_id.value">
+                            <span class="badge">Asignado: <t t-esc="record.employee_id.value"/></span>
+                          </t>
+                          <t t-if="!record.employee_id.value">
+                            <span class="badge">Sin asignar</span>
+                          </t>
+                          <span class="badge"><t t-esc="record.workcenter_id.value"/></span>
+                          <span class="badge"><t t-esc="record.state.value"/></span>
+                        </div>
+                      </div>
+                    </t>
+                  </templates>
+                </kanban>
               </field>
-            </page>
-          </notebook>
+            </div>
+
+            <!-- DERECHA: cola del empleado -->
+            <div class="o_col-6">
+              <h3>Cola de <t t-esc="object.employee_id.display_name"/></h3>
+              <field name="line_ids"
+                    widget="kanban"
+                    options="{'no_create': True, 'mrp_dual_kanban': 'employee', 'draggable': 'true'}">
+                <kanban>
+                  <templates>
+                    <t t-name="kanban-box">
+                      <div class="oe_kanban_global_click">
+                        <span class="o_kanban_handle">&#9776;</span>
+                        <div class="o_kanban_record_title">
+                          <t t-esc="record.workorder_id.value"/>
+                        </div>
+                        <div class="o_kanban_tags">
+                          <span class="badge"><t t-esc="record.production_id.value"/></span>
+                          <span class="badge"><t t-esc="record.state.value"/></span>
+                        </div>
+                      </div>
+                    </t>
+                  </templates>
+                </kanban>
+              </field>
+            </div>
+          </div>
         </sheet>
       </form>
     </field>
   </record>
 
+  <!-- Acción -->
   <record id="action_work_queue_plan_by_wc" model="ir.actions.act_window">
     <field name="name">Planificador</field>
     <field name="res_model">work.queue.plan</field>

@@ -1,19 +1,22 @@
 {
     "name": "MRP Work Queue (Admin Planner + Next Order)",
     "version": "18.0.1.0.0",
-    "summary": "Planificador por empleado con prioridad drag-and-drop y botón 'Siguiente orden' para planta",
-    "author": "ChatGPT helper",
+    "summary": "Planificador por empleado con kanban doble y botón 'Siguiente orden' en planta",
+    "author": "Tu equipo",
     "license": "LGPL-3",
-    "depends": ["mrp", "hr"],
+    "depends": ["mrp", "hr", "web"],
     "data": [
         "security/groups.xml",
         "security/ir.model.access.csv",
-
-        "views/queue_item_views.xml",
-        "views/planner_views.xml",                 # <- define action_work_queue_plan_by_wc
-        "wizard/next_workorder_wizard_views.xml",  # <- define action_next_workorder_wizard
-
-        "views/menu.xml"                           # <- SIEMPRE AL FINAL
+        "views/queue_item_views.xml",              # si ya lo tenés, dejalo
+        "views/planner_views.xml",                 # ← este lo actualizamos
+        "wizard/next_workorder_wizard_views.xml",  # si ya lo tenés, dejalo
+        "views/menu.xml"
     ],
-    "application": True
+    "assets": {
+        "web.assets_backend": [
+            "mrp_work_queue/static/src/js/dual_kanban.js",
+        ],
+    },
+    "application": True,
 }
