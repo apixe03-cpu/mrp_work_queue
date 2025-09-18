@@ -30,7 +30,11 @@
             <!-- IZQUIERDA: backlog -->
             <div class="o_col-6">
               <h3>Backlog del centro</h3>
-              <div class="text-muted"><label string="Centro:"/> <field name="workcenter_id" readonly="1"/></div>
+              <div class="text-muted">
+                <span class="o_form_label">Centro:</span>
+                <field name="workcenter_id" readonly="1"/>
+              </div>
+
               <field name="backlog_item_ids"
                      widget="kanban"
                      options="{'no_edit': True, 'no_create': True, 'mrp_dual_kanban': 'backlog'}"
@@ -62,7 +66,11 @@
             <!-- DERECHA: cola del empleado -->
             <div class="o_col-6">
               <h3>Cola del empleado</h3>
-              <div class="text-muted"><label string="Empleado:"/> <field name="employee_id" readonly="1"/></div>
+              <div class="text-muted">
+                <span class="o_form_label">Empleado:</span>
+                <field name="employee_id" readonly="1"/>
+              </div>
+
               <field name="line_ids"
                      widget="kanban"
                      options="{'no_create': True, 'mrp_dual_kanban': 'employee', 'draggable': 'true'}">

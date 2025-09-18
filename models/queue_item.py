@@ -8,26 +8,32 @@ class WorkQueueItem(models.Model):
     sequence = fields.Integer(default=10)
 
     workorder_id = fields.Many2one(
-        "mrp.workorder", required=True, ondelete="cascade", index=True
+        "mrp.workorder",
+        required=True,
+        ondelete="cascade",
+        index=True,
     )
 
-    # De la OT
     workcenter_id = fields.Many2one(
         related="workorder_id.workcenter_id",
-        store=True,        # ESTE sí lo dejamos almacenado porque lo usamos en dominio
+        store=True,
         index=True,
+        readonly=True,
     )
     production_id = fields.Many2one(
         related="workorder_id.production_id",
-        store=False,       # <— CAMBIO
+        store=False,
+        readonly=True,
     )
     product_id = fields.Many2one(
         related="workorder_id.product_id",
-        store=False,       # <— CAMBIO
+        store=False,
+        readonly=True,
     )
     state = fields.Selection(
         related="workorder_id.state",
-        store=False,       # <— CAMBIO
+        store=False,
+        readonly=True,
     )
 
     employee_id = fields.Many2one("hr.employee", index=True)
