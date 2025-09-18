@@ -29,11 +29,12 @@
           <div class="o_row">
             <!-- IZQUIERDA: backlog -->
             <div class="o_col-6">
-              <h3>Backlog de <t t-esc="object.workcenter_id.display_name"/></h3>
+              <h3>Backlog del centro</h3>
+              <div class="text-muted"><label string="Centro:"/> <field name="workcenter_id" readonly="1"/></div>
               <field name="backlog_item_ids"
-                    widget="kanban"
-                    options="{'no_edit': True, 'no_create': True, 'mrp_dual_kanban': 'backlog'}"
-                    context="{'plan_employee_id': object.employee_id.id}">
+                     widget="kanban"
+                     options="{'no_edit': True, 'no_create': True, 'mrp_dual_kanban': 'backlog'}"
+                     context="{'plan_employee_id': object.employee_id.id}">
                 <kanban>
                   <templates>
                     <t t-name="kanban-box">
@@ -60,10 +61,11 @@
 
             <!-- DERECHA: cola del empleado -->
             <div class="o_col-6">
-              <h3>Cola de <t t-esc="object.employee_id.display_name"/></h3>
+              <h3>Cola del empleado</h3>
+              <div class="text-muted"><label string="Empleado:"/> <field name="employee_id" readonly="1"/></div>
               <field name="line_ids"
-                    widget="kanban"
-                    options="{'no_create': True, 'mrp_dual_kanban': 'employee', 'draggable': 'true'}">
+                     widget="kanban"
+                     options="{'no_create': True, 'mrp_dual_kanban': 'employee', 'draggable': 'true'}">
                 <kanban>
                   <templates>
                     <t t-name="kanban-box">
