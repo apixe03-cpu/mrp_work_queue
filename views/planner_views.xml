@@ -36,9 +36,9 @@
               </div>
 
               <field name="backlog_item_ids"
-                     widget="kanban"
-                     options="{'no_edit': True, 'no_create': True, 'mrp_dual_kanban': 'backlog'}"
-                     context="{'plan_employee_id': object.employee_id.id}">
+                    widget="kanban"
+                    options="{'no_edit': True, 'no_create': True, 'mrp_dual_kanban': 'backlog'}"
+                    context="{'plan_employee_id': employee_id}">
                 <kanban>
                   <templates>
                     <t t-name="kanban-box">
