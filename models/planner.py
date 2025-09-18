@@ -1,69 +1,54 @@
-
-from odoo import api, fields, models, _
-
-AVAILABLE_STATES = ('ready', 'pending', 'progress')
+from odoo import api, fields, models
 
 class WorkQueuePlan(models.Model):
     _name = "work.queue.plan"
-    _description = "Planificación de cola por empleado"
-    _rec_name = "name"
+    _description = "Work Queue Plan"
 
-    name = fields.Char(compute="_compute_name", store=False)
-    workcenter_id = fields.Many2one("mrp.workcenter", required=True, string="Centro de trabajo", index=True)
-    employee_id = fields.Many2one("hr.employee", required=True, string="Empleado", index=True)
-    line_ids = fields.One2many("work.queue.plan.line", "plan_id", string="Cola (arrastre para ordenar)")
+    workcenter_id = fields.Many2one("mrp.workcenter", required=True)
+    employee_id = fields.Many2one("hr.employee", required=True)
 
-    @api.depends("workcenter_id", "employee_id")
-    def _compute_name(self):
-        for rec in self:
-            if rec.workcenter_id and rec.employee_id:
-                rec.name = "%s / %s" % (rec.workcenter_id.display_name, rec.employee_id.display_name)
-            else:
-                rec.name = "Plan de cola"
+    # Cola del empleado (derecha): ítems del empleado y del centro en este plan
+    line_ids = fields.One2many(
+        "work.queue.item",
+        "plan_id",
+        domain="[('employee_id', '=', employee_id), ('workcenter_id', '=', workcenter_id)]",
+        string="Cola del empleado",
+    )
+
+    # Backlog (izquierda): todos los items del centro (asignados o no) enganchados a ESTE plan
+    backlog_item_ids = fields.One2many(
+        "work.queue.item",
+        "plan_backlog_helper_id",
+        string="Backlog",
+        readonly=True,
+    )
 
     def action_load_available(self):
+        """Crea items para todas las mrp.workorder del centro (si no existen)
+        y engancha su backlog a ESTE plan (sin duplicar).
+        """
         self.ensure_one()
-        Workorder = self.env["mrp.workorder"]
-        QueueItem = self.env["work.queue.item"]
-        domain = [
+        WQI = self.env["work.queue.item"]
+
+        # 1) Workorders del centro en estados relevantes
+        wos = self.env["mrp.workorder"].search([
             ("workcenter_id", "=", self.workcenter_id.id),
-            ("state", "in", AVAILABLE_STATES),
-        ]
-        wos = Workorder.search(domain)
-        assigned_wo_ids = set(QueueItem.search([]).mapped("workorder_id").ids)
-        candidates = [wo for wo in wos if wo.id not in assigned_wo_ids]
-        seq = 10
-        for wo in candidates:
-            item = QueueItem.create({
-                "employee_id": self.employee_id.id,
-                "workcenter_id": self.workcenter_id.id,
-                "workorder_id": wo.id,
-                "sequence": seq,
-            })
-            self.env["work.queue.plan.line"].create({
-                "plan_id": self.id,
-                "item_id": item.id,
-                "sequence": seq,
-            })
-            seq += 10
-        return {
-            "type": "ir.actions.client",
-            "tag": "display_notification",
-            "params": {"title": _("Cargado"), "message": _("Se cargaron %s tareas" % len(candidates)), "sticky": False}
-        }
+            ("state", "in", ["pending", "ready", "progress"]),
+        ])
 
-class WorkQueuePlanLine(models.Model):
-    _name = "work.queue.plan.line"
-    _description = "Línea de plan de cola"
-    _order = "sequence, id"
+        # 2) Crear items que no existan (único por workorder)
+        existing = WQI.search([("workorder_id", "in", wos.ids)])
+        existing_by_wo = set(existing.mapped("workorder_id").ids)
 
-    plan_id = fields.Many2one("work.queue.plan", required=True, ondelete="cascade")
-    item_id = fields.Many2one("work.queue.item", required=True, string="Item de cola", ondelete="cascade")
-    workorder_id = fields.Many2one(related="item_id.workorder_id", string="Orden de trabajo", store=False)
-    sequence = fields.Integer(string="Posición", default=10)
+        vals_list = []
+        for wo in wos:
+            if wo.id not in existing_by_wo:
+                vals_list.append({"workorder_id": wo.id})
+        if vals_list:
+            WQI.create(vals_list)
 
-    @api.onchange("sequence")
-    def _onchange_sequence(self):
-        for line in self:
-            if line.item_id:
-                line.item_id.sequence = line.sequence
+        # 3) Recalcular backlog para este plan (enganche visual)
+        all_items = WQI.search([("workorder_id", "in", wos.ids)])
+        all_items.write({"plan_backlog_helper_id": self.id})
+
+        return True

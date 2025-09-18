@@ -14,9 +14,10 @@ class WorkQueueItem(models.Model):
         index=True,
     )
 
+    # Derivados de la OT
     workcenter_id = fields.Many2one(
         related="workorder_id.workcenter_id",
-        store=True,
+        store=True,      # lo usamos para dominios por centro
         index=True,
         readonly=True,
     )
@@ -36,10 +37,12 @@ class WorkQueueItem(models.Model):
         readonly=True,
     )
 
+    # Asignación (None = backlog del centro)
     employee_id = fields.Many2one("hr.employee", index=True)
 
-    plan_id = fields.Many2one("work.queue.plan", index=True)
-    plan_backlog_helper_id = fields.Many2one("work.queue.plan", index=True)
+    # Tablero por plan
+    plan_id = fields.Many2one("work.queue.plan", index=True)                # cola (derecha)
+    plan_backlog_helper_id = fields.Many2one("work.queue.plan", index=True) # backlog (izquierda)
 
     _sql_constraints = [
         ("uniq_workorder", "unique(workorder_id)", "Cada orden de trabajo puede estar en una sola cola."),
