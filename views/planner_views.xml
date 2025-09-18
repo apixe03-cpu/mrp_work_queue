@@ -98,7 +98,7 @@
     </field>
   </record>
 
-  <!-- Acción -->
+  <!-- Acción del planificador -->
   <record id="action_work_queue_plan_by_wc" model="ir.actions.act_window">
     <field name="name">Planificador</field>
     <field name="res_model">work.queue.plan</field>
