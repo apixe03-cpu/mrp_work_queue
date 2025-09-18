@@ -8,35 +8,26 @@ class WorkQueueItem(models.Model):
     sequence = fields.Integer(default=10)
 
     workorder_id = fields.Many2one(
-        "mrp.workorder",
-        required=True,
-        ondelete="cascade",
-        index=True,
+        "mrp.workorder", required=True, ondelete="cascade", index=True
     )
 
-    # ÚNICO related que guardamos en BD para dominios/índices
+    # De la OT
     workcenter_id = fields.Many2one(
         related="workorder_id.workcenter_id",
-        store=True,
+        store=True,        # ESTE sí lo dejamos almacenado porque lo usamos en dominio
         index=True,
-        readonly=True,
     )
-
-    # Estos NO se almacenan (store=False) → evitamos columnas faltantes
     production_id = fields.Many2one(
         related="workorder_id.production_id",
-        store=False,
-        readonly=True,
+        store=False,       # <— CAMBIO
     )
     product_id = fields.Many2one(
         related="workorder_id.product_id",
-        store=False,
-        readonly=True,
+        store=False,       # <— CAMBIO
     )
     state = fields.Selection(
         related="workorder_id.state",
-        store=False,
-        readonly=True,
+        store=False,       # <— CAMBIO
     )
 
     employee_id = fields.Many2one("hr.employee", index=True)
