@@ -1,22 +1,21 @@
+# -*- coding: utf-8 -*-
 {
     "name": "MRP Work Queue",
-    "version": "18.0.1.0.0",
-    "summary": "Planificador por empleado con kanban doble y 'Siguiente orden'",
-    "author": "Tú",
+    "summary": "Planificador por empleado: asignar y priorizar órdenes de trabajo",
+    "version": "18.0.1.0",
+    "category": "Manufacturing",
     "license": "LGPL-3",
-    "depends": ["mrp", "hr", "web"],
+    "author": "You",
+    "depends": ["mrp", "hr"],
     "data": [
-        "security/groups.xml",
+        "security/security.xml",
         "security/ir.model.access.csv",
-        "views/planner_views.xml",
         "views/queue_item_views.xml",
-        "wizard/next_workorder_wizard_views.xml",
+        "views/planner_views.xml",
         "views/menu.xml",
     ],
-    "assets": {
-        "web.assets_backend": [
-            "mrp_work_queue/static/src/js/dual_kanban.js",
-        ],
-    },
-    "application": True,
+    # MUY IMPORTANTE: sin assets JS para evitar pantallas blancas
+    "assets": {},
+    "installable": True,
+    "application": False,
 }

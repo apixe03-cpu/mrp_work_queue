@@ -1,11 +1,13 @@
 <odoo>
-  <record id="group_mrp_queue_admin" model="res.groups">
-    <field name="name">Cola de trabajo - Administrador</field>
-    <field name="category_id" ref="base.module_category_manufacturing"/>
-  </record>
+  <data noupdate="1">
+    <record id="group_mrp_queue_admin" model="res.groups">
+      <field name="name">Manufactura / MRP Queue: Administrador</field>
+      <field name="category_id" ref="base.module_category_manufacturing"/>
+    </record>
 
-  <record id="group_mrp_queue_operator" model="res.groups">
-    <field name="name">Cola de trabajo - Operario</field>
-    <field name="category_id" ref="base.module_category_manufacturing"/>
-  </record>
+    <record id="group_mrp_queue_operator" model="res.groups">
+      <field name="name">Manufactura / MRP Queue: Operario</field>
+      <field name="category_id" ref="base.module_category_manufacturing"/>
+    </record>
+  </data>
 </odoo>
