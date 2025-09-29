@@ -18,11 +18,12 @@
 
             <!-- IZQUIERDA: Operaciones disponibles -->
             <group>
-              <h3>Backlog del centro</h3>
+              <h3>Operaciones disponibles</h3>
               <field name="backlog_item_ids"
                      domain="[('employee_id','=',False), ('workcenter_id','=',workcenter_id)]"
-                     context="{'active_id': id}">
-                <list create="0" delete="0" editable="0">
+                     context="{'active_id': id}"
+                     options="{'no_create': True, 'no_create_edit': True, 'no_edit': True}">
+                <tree create="0" delete="0" editable="0">
                   <field name="workorder_id"   string="Operación"/>
                   <field name="workcenter_id"  string="Centro de trabajo"/>
                   <field name="product_id"     string="Producto"/>
@@ -33,7 +34,7 @@
                           string="→"
                           class="btn-primary"
                           title="Asignar a la cola del empleado"/>
-                </list>
+                </tree>
               </field>
             </group>
 
@@ -42,8 +43,9 @@
               <h3>Cola del empleado</h3>
               <field name="line_ids"
                      domain="[('employee_id','=',employee_id), ('workcenter_id','=',workcenter_id)]"
-                     context="{'active_id': id}">
-                <list create="0" delete="0" editable="bottom">
+                     context="{'active_id': id}"
+                     options="{'no_create': True, 'no_create_edit': True}">
+                <tree create="0" delete="0" editable="bottom">
                   <field name="sequence" widget="handle" string="#"/>
                   <field name="workorder_id"   string="Operación"/>
                   <field name="workcenter_id"  string="Centro de trabajo"/>
@@ -55,7 +57,7 @@
                           string="←"
                           class="btn-secondary"
                           title="Quitar de la cola"/>
-                </list>
+                </tree>
               </field>
             </group>
 
