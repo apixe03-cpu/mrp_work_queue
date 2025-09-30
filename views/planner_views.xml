@@ -9,57 +9,47 @@
             <field name="workcenter_id" required="1" string="Centro de trabajo"/>
             <field name="employee_id"  required="1" string="Empleado"/>
           </group>
-
           <header>
-            <button name="action_load_available" type="object"
-                    string="Cargar disponibles" class="btn-secondary"/>
+            <button name="action_load_available" type="object" string="Cargar disponibles" class="btn-secondary"/>
           </header>
 
           <group col="2">
-
-            <!-- IZQUIERDA: Operaciones disponibles -->
+            <!-- IZQUIERDA -->
             <group>
               <h3>Operaciones disponibles</h3>
-              <!-- IMPORTANTE: create="0" delete="0" y sin editable -->
               <field name="backlog_item_ids"
-                     create="0" delete="0" readonly="1"
+                     domain="[('employee_id','=',False), ('workcenter_id','=',workcenter_id)]"
                      context="{'active_id': id}"
-                     options="{'no_create': True, 'no_create_edit': True, 'no_open': True}">
-                <tree>
+                     options="{'no_create': True, 'no_create_edit': True, 'no_edit': True}">
+                <list create="0" delete="0" editable="0">
                   <field name="workorder_id"   string="Operación"/>
                   <field name="workcenter_id"  string="Centro de trabajo"/>
                   <field name="product_id"     string="Producto"/>
                   <field name="production_id"  string="OF"/>
                   <field name="state"          string="Estado"/>
-                  <button name="action_assign_to_employee" type="object"
-                          string="→" class="btn-primary"
-                          title="Asignar a la cola del empleado"/>
-                </tree>
+                  <button name="action_assign_to_employee" type="object" string="→" class="btn-primary"/>
+                </list>
               </field>
             </group>
 
-            <!-- DERECHA: Cola del empleado -->
+            <!-- DERECHA -->
             <group>
               <h3>Cola del empleado</h3>
-              <!-- Reordenar con handle: editable="bottom", pero sin crear ni borrar -->
               <field name="line_ids"
-                     create="0" delete="0"
+                     domain="[('employee_id','=',employee_id), ('workcenter_id','=',workcenter_id)]"
                      context="{'active_id': id}"
-                     options="{'no_create': True, 'no_create_edit': True, 'no_open': True}">
-                <tree editable="bottom">
+                     options="{'no_create': True, 'no_create_edit': True}">
+                <list create="0" delete="0" editable="bottom">
                   <field name="sequence" widget="handle" string="#"/>
                   <field name="workorder_id"   string="Operación"/>
                   <field name="workcenter_id"  string="Centro de trabajo"/>
                   <field name="product_id"     string="Producto"/>
                   <field name="production_id"  string="OF"/>
                   <field name="state"          string="Estado"/>
-                  <button name="action_unassign" type="object"
-                          string="←" class="btn-secondary"
-                          title="Quitar de la cola"/>
-                </tree>
+                  <button name="action_unassign" type="object" string="←" class="btn-secondary"/>
+                </list>
               </field>
             </group>
-
           </group>
         </sheet>
       </form>
