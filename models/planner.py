@@ -13,10 +13,10 @@ class WorkQueuePlan(models.Model):
     company_id = fields.Many2one("res.company", default=lambda s: s.env.company, string="Company")
 
     # Derecha: cola del empleado
-    line_ids = fields.One2many("work.queue.item", "plan_id", string="Queue")
+    line_ids = fields.One2many("work.queue.item", "plan_id", string="")
 
     # Izquierda: backlog calculado/cargado para este plan
-    backlog_item_ids = fields.One2many("work.queue.item", "plan_backlog_helper_id", string="Backlog")
+    backlog_item_ids = fields.One2many("work.queue.item", "plan_backlog_helper_id", string="")
 
     def _clean_backlog(self):
         for plan in self:

@@ -3,7 +3,7 @@
     <field name="name">work.queue.plan.form</field>
     <field name="model">work.queue.plan</field>
     <field name="arch" type="xml">
-      <form string="Planificador">
+      <form string="Planificador" class="o_form_full_width">
         <sheet>
           <group>
             <field name="workcenter_id" required="1" string="Centro de trabajo"/>
@@ -27,7 +27,6 @@
                   <field name="workorder_id"   string="Operación"/>
                   <field name="workcenter_id"  string="Centro de trabajo"/>
                   <field name="product_id"     string="Producto"/>
-                  <field name="production_id"  string="OF"/>
                   <field name="state"          string="Estado"/>
                   <button name="action_assign_to_employee"
                           type="object"
@@ -50,7 +49,6 @@
                   <field name="workorder_id"   string="Operación"/>
                   <field name="workcenter_id"  string="Centro de trabajo"/>
                   <field name="product_id"     string="Producto"/>
-                  <field name="production_id"  string="OF"/>
                   <field name="state"          string="Estado"/>
                   <button name="action_unassign"
                           type="object"
