@@ -19,7 +19,7 @@
 
 /* >>> ESTE ES EL “ESPACIO ENTRE TABLAS” MÁS ROBUSTO <<< */
 .mrp-wq-edge .mrp-wq-col + .mrp-wq-col {
-  margin-left: 16px;         /* ajustá a 20/24 si querés más aire */
+  margin-left: 24px;         /* ajustá a 20/24 si querés más aire */
 }
 
 /* título de cada tabla */
