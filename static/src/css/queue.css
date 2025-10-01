@@ -6,12 +6,12 @@
 
 /* fila y columnas sin sangrías que chupen ancho */
 .mrp-wq-edge .mrp-wq-row {
+  gap: 16px;
   margin-left: 0 !important;
   margin-right: 0 !important;
 }
 .mrp-wq-edge .mrp-wq-col {
-  padding-left: 0 !important;
-  padding-right: 12px !important;
+  padding: 0 !important;
 }
 .mrp-wq-edge .mrp-wq-col:last-child {
   padding-right: 0 !important;
@@ -19,7 +19,7 @@
 
 /* títulos pegados a la tabla (sin comerse ancho) */
 .mrp-wq-edge .mrp-wq-title {
-  margin: 12px 0 6px 0;
+  margin: 12px 0 10px 0;
   font-weight: 600;
 }
 
