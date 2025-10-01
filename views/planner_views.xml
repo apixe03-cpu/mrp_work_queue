@@ -3,7 +3,8 @@
     <field name="name">work.queue.plan.form</field>
     <field name="model">work.queue.plan</field>
     <field name="arch" type="xml">
-      <form string="Planificador" class="o_form_full_width">
+      <!-- NOTA: añadimos clase mrp-wq-dual para aplicar el CSS -->
+      <form string="Planificador" class="o_form_full_width mrp-wq-dual">
         <sheet>
           <group>
             <field name="workcenter_id" required="1" string="Centro de trabajo"/>
@@ -16,10 +17,11 @@
           <!-- Dos columnas -->
           <group col="2">
 
-            <!-- IZQUIERDA: Operaciones disponibles (solo lectura) -->
+            <!-- IZQUIERDA: Operaciones disponibles -->
             <group>
               <h3>Operaciones disponibles</h3>
               <field name="backlog_item_ids"
+                     nolabel="1"
                      domain="[('employee_id','=',False), ('workcenter_id','=',workcenter_id)]"
                      context="{'active_id': id}"
                      options="{'no_create': True, 'no_create_edit': True, 'no_edit': True}">
@@ -37,10 +39,11 @@
               </field>
             </group>
 
-            <!-- DERECHA: Cola del empleado (reorden con handle) -->
+            <!-- DERECHA: Cola del empleado -->
             <group>
               <h3>Cola del empleado</h3>
               <field name="line_ids"
+                     nolabel="1"
                      domain="[('employee_id','=',employee_id), ('workcenter_id','=',workcenter_id)]"
                      context="{'active_id': id}"
                      options="{'no_create': True, 'no_create_edit': True}">

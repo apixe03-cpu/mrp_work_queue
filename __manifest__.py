@@ -13,7 +13,11 @@
         "views/planner_views.xml",
         "views/menu.xml",
     ],
-    "assets": {},  # SIN JS
+    "assets": {
+    "web.assets_backend": [
+        "mrp_work_queue/static/src/css/queue.css",
+        ],
+    },
     "installable": True,
     "application": False,
 }

@@ -1,0 +1,21 @@
+/* Hacer que el sheet use el ancho completo */
+.o_form_view .o_form_sheet {
+  max-width: none !important;
+}
+
+/* Quitar un poco de aire a la derecha si lo hubiera */
+.o_form_sheet_bg {
+  padding-right: 0 !important;
+}
+
+/* Tablas más flexibles (evita scroll horizontal innecesario) */
+.mrp-wq-dual .o_list_view table {
+  table-layout: auto;
+}
+
+/* Columna de botón (→ / ←) angosta y siempre visible */
+.mrp-wq-dual .o_list_button, 
+.mrp-wq-dual .o_list_view th.o_list_button {
+  width: 1%;
+  white-space: nowrap;
+}
