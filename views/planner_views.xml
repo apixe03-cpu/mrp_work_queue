@@ -3,67 +3,67 @@
     <field name="name">work.queue.plan.form</field>
     <field name="model">work.queue.plan</field>
     <field name="arch" type="xml">
-      <!-- NOTA: añadimos clase mrp-wq-dual para aplicar el CSS -->
-      <form string="Planificador" class="o_form_full_width mrp-wq-dual">
-        <sheet>
-          <group>
-            <field name="workcenter_id" required="1" string="Centro de trabajo"/>
-            <field name="employee_id"  required="1" string="Empleado"/>
-          </group>
-          <header>
-            <button name="action_load_available" type="object" string="Cargar disponibles" class="btn-secondary"/>
-          </header>
+      <!-- sin <sheet>: ancho completo real -->
+      <form string="Planificador" class="o_form_nosheet o_form_full_width mrp-wq-edge">
 
-          <!-- Dos columnas -->
-          <group col="2">
+        <!-- filtros arriba -->
+        <group>
+          <field name="workcenter_id" required="1" string="Centro de trabajo"/>
+          <field name="employee_id"  required="1" string="Empleado"/>
+        </group>
 
-            <!-- IZQUIERDA: Operaciones disponibles -->
-            <group>
-              <h3>Operaciones disponibles</h3>
-              <field name="backlog_item_ids"
-                     nolabel="1"
-                     domain="[('employee_id','=',False), ('workcenter_id','=',workcenter_id)]"
-                     context="{'active_id': id}"
-                     options="{'no_create': True, 'no_create_edit': True, 'no_edit': True}">
-                <list create="0" delete="0">
-                  <field name="workorder_id"   string="Operación"/>
-                  <field name="workcenter_id"  string="Centro de trabajo"/>
-                  <field name="product_id"     string="Producto"/>
-                  <field name="state"          string="Estado"/>
-                  <button name="action_assign_to_employee"
-                          type="object"
-                          string="→"
-                          class="btn-primary"
-                          title="Asignar a la cola del empleado"/>
-                </list>
-              </field>
-            </group>
+        <header>
+          <button name="action_load_available" type="object" string="Cargar disponibles" class="btn-secondary"/>
+        </header>
 
-            <!-- DERECHA: Cola del empleado -->
-            <group>
-              <h3>Cola del empleado</h3>
-              <field name="line_ids"
-                     nolabel="1"
-                     domain="[('employee_id','=',employee_id), ('workcenter_id','=',workcenter_id)]"
-                     context="{'active_id': id}"
-                     options="{'no_create': True, 'no_create_edit': True}">
-                <list create="0" delete="0" editable="bottom">
-                  <field name="sequence" widget="handle" string="#"/>
-                  <field name="workorder_id"   string="Operación"/>
-                  <field name="workcenter_id"  string="Centro de trabajo"/>
-                  <field name="product_id"     string="Producto"/>
-                  <field name="state"          string="Estado"/>
-                  <button name="action_unassign"
-                          type="object"
-                          string="←"
-                          class="btn-secondary"
-                          title="Quitar de la cola"/>
-                </list>
-              </field>
-            </group>
+        <!-- dos columnas 50/50 de verdad -->
+        <div class="o_row mrp-wq-row">
+          <!-- IZQUIERDA -->
+          <div class="o_col-6 mrp-wq-col">
+            <h3 class="mrp-wq-title">Operaciones disponibles</h3>
+            <field name="backlog_item_ids"
+                   nolabel="1"
+                   domain="[('employee_id','=',False), ('workcenter_id','=',workcenter_id)]"
+                   context="{'active_id': id}"
+                   options="{'no_create': True, 'no_create_edit': True, 'no_edit': True}">
+              <list create="0" delete="0">
+                <field name="workorder_id"   string="Operación"/>
+                <field name="workcenter_id"  string="Centro de trabajo"/>
+                <field name="product_id"     string="Producto"/>
+                <field name="state"          string="Estado"/>
+                <button name="action_assign_to_employee"
+                        type="object"
+                        string="→"
+                        class="btn-primary"
+                        title="Asignar a la cola del empleado"/>
+              </list>
+            </field>
+          </div>
 
-          </group>
-        </sheet>
+          <!-- DERECHA -->
+          <div class="o_col-6 mrp-wq-col">
+            <h3 class="mrp-wq-title">Cola del empleado</h3>
+            <field name="line_ids"
+                   nolabel="1"
+                   domain="[('employee_id','=',employee_id), ('workcenter_id','=',workcenter_id)]"
+                   context="{'active_id': id}"
+                   options="{'no_create': True, 'no_create_edit': True}">
+              <list create="0" delete="0" editable="bottom">
+                <field name="sequence" widget="handle" string="#"/>
+                <field name="workorder_id"   string="Operación"/>
+                <field name="workcenter_id"  string="Centro de trabajo"/>
+                <field name="product_id"     string="Producto"/>
+                <field name="state"          string="Estado"/>
+                <button name="action_unassign"
+                        type="object"
+                        string="←"
+                        class="btn-secondary"
+                        title="Quitar de la cola"/>
+              </list>
+            </field>
+          </div>
+        </div>
+
       </form>
     </field>
   </record>

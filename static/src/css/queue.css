@@ -1,21 +1,37 @@
-/* Hacer que el sheet use el ancho completo */
-.o_form_view .o_form_sheet {
-  max-width: none !important;
+/* vista sin sheet: ocupar ancho total */
+.mrp-wq-edge.o_form_nosheet {
+  padding-right: 0 !important;
+  padding-left: 0 !important;
 }
 
-/* Quitar un poco de aire a la derecha si lo hubiera */
-.o_form_sheet_bg {
+/* fila y columnas sin sangrías que chupen ancho */
+.mrp-wq-edge .mrp-wq-row {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+.mrp-wq-edge .mrp-wq-col {
+  padding-left: 0 !important;
+  padding-right: 12px !important;
+}
+.mrp-wq-edge .mrp-wq-col:last-child {
   padding-right: 0 !important;
 }
 
-/* Tablas más flexibles (evita scroll horizontal innecesario) */
-.mrp-wq-dual .o_list_view table {
-  table-layout: auto;
+/* títulos pegados a la tabla (sin comerse ancho) */
+.mrp-wq-edge .mrp-wq-title {
+  margin: 12px 0 6px 0;
+  font-weight: 600;
 }
 
-/* Columna de botón (→ / ←) angosta y siempre visible */
-.mrp-wq-dual .o_list_button, 
-.mrp-wq-dual .o_list_view th.o_list_button {
+/* tablas fluidas: minimizar scroll horizontal */
+.mrp-wq-edge .o_list_view table {
+  width: 100%;
+  table-layout: auto; /* no fijar columnas por fuerza */
+}
+
+/* columna del botón (→/←) angosta */
+.mrp-wq-edge .o_list_button,
+.mrp-wq-edge th.o_list_button {
   width: 1%;
   white-space: nowrap;
 }
