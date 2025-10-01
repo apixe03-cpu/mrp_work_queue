@@ -1,38 +1,40 @@
-/* Vista sin sheet: ocupar ancho total */
+/* ocupar ancho completo sin sheet */
 .mrp-wq-edge.o_form_nosheet {
   padding-right: 0 !important;
   padding-left: 0 !important;
 }
 
-/* Forzar al contenedor de columnas (que es un <group> -> .o_group) a FLEX */
-.mrp-wq-edge .mrp-wq-row.o_group {
-  display: flex !important;
-  gap: 16px;                 /* espacio entre tablas */
-  margin-left: 0 !important;
+/* fila real: o_row + nuestras columnas */
+.mrp-wq-edge .mrp-wq-row {
+  display: flex;             /* aseguramos flex */
+  margin-left: 0 !important; /* anulamos márgenes negativos del theme */
   margin-right: 0 !important;
-  grid-template-columns: none !important; /* anula grid si lo hubiera */
 }
 
-/* Cada columna se estira y permite que la tabla fluya sin overflow raro */
-.mrp-wq-edge .mrp-wq-row.o_group > .o_group.mrp-wq-col {
+.mrp-wq-edge .mrp-wq-col {
   flex: 1 1 0;
-  min-width: 0;              /* importante para que la tabla pueda encoger */
-  padding: 0 !important;     /* que no “chupe” ancho */
+  min-width: 0;              /* evita overflow horizontal */
+  padding: 0 !important;
 }
 
-/* Títulos con un poco de aire */
+/* >>> ESTE ES EL “ESPACIO ENTRE TABLAS” MÁS ROBUSTO <<< */
+.mrp-wq-edge .mrp-wq-col + .mrp-wq-col {
+  margin-left: 16px;         /* ajustá a 20/24 si querés más aire */
+}
+
+/* título de cada tabla */
 .mrp-wq-edge .mrp-wq-title {
   margin: 12px 0 10px 0;
   font-weight: 600;
 }
 
-/* Las tablas ocupan el 100% y no fijan ancho de columnas */
+/* tablas fluidas */
 .mrp-wq-edge .o_list_view table {
   width: 100%;
   table-layout: auto;
 }
 
-/* Botón de flecha angosto */
+/* botón flecha angosto */
 .mrp-wq-edge .o_list_button,
 .mrp-wq-edge th.o_list_button {
   width: 1%;
