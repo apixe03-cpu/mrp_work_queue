@@ -1,23 +1,27 @@
 <odoo>
+  <!-- Acción principal: abrir el planificador en formulario -->
   <record id="action_work_queue_plan_by_wc" model="ir.actions.act_window">
     <field name="name">Planificador</field>
     <field name="res_model">work.queue.plan</field>
     <field name="view_mode">form</field>
-    <!-- 👇 forzamos la vista correcta -->
-    <field name="view_id" ref="view_work_queue_plan_form"/>
     <field name="target">current</field>
     <field name="context">{}</field>
     <field name="help" type="html">
-      <p>Seleccione Centro de trabajo y Empleado, luego pulse <b>Cargar disponibles</b>.</p>
+      <p>Seleccione Centro de trabajo y Empleado, pulse <b>Cargar disponibles</b>, asigne con → y reordene con el manejador (#).</p>
     </field>
   </record>
 
-  <!-- menús (igual que ya tenías) -->
-  <menuitem id="menu_work_queue_root" name="Cola de trabajo" parent="mrp.menu_mrp_root" sequence="80"/>
-  <menuitem id="menu_work_queue_admin" name="Planificador (Admin)"
-            parent="menu_work_queue_root" action="action_work_queue_plan_by_wc"
-            sequence="1" groups="mrp_work_queue.group_mrp_queue_admin"/>
-  <menuitem id="menu_work_queue_operator" name="Planificador (Planta)"
-            parent="menu_work_queue_root" action="action_work_queue_plan_by_wc"
-            sequence="2" groups="mrp_work_queue.group_mrp_queue_operator"/>
+  <!-- Menú raíz (Manufactura) -->
+  <menuitem id="menu_work_queue_root"
+            name="Cola de trabajo"
+            parent="mrp.menu_mrp_root"
+            sequence="80"/>
+
+  <!-- Menú del planificador (Admin y Operario) -->
+  <menuitem id="menu_work_queue_admin"
+            name="Planificador"
+            parent="menu_work_queue_root"
+            action="action_work_queue_plan_by_wc"
+            sequence="1"
+            groups="mrp_work_queue.group_mrp_queue_admin,mrp_work_queue.group_mrp_queue_operator"/>
 </odoo>
