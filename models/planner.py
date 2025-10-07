@@ -10,14 +10,13 @@ class WorkQueuePlan(models.Model):
 
     workcenter_id = fields.Many2one("mrp.workcenter", required=True, string="Workcenter", index=True)
     employee_id   = fields.Many2one("hr.employee",   required=True, string="Employee",   index=True)
-    company_id    = fields.Many2one("res.company", default=lambda s: s.env.company, string="Company", index=True)
+    company_id    = fields.Many2one("res.company", required=True, default=lambda s: s.env.company, string="Company", index=True)
 
     line_ids = fields.One2many("work.queue.item", "plan_id", string="")
     backlog_item_ids = fields.One2many("work.queue.item", "plan_backlog_helper_id", string="")
     line_count = fields.Integer(string="En cola", compute="_compute_line_count", store=False)
 
     _sql_constraints = [
-        # 1 sola cola por (Centro, Empleado, Compañía)
         (
             "uniq_wc_emp_company",
             "unique(workcenter_id, employee_id, company_id)",
@@ -34,19 +33,24 @@ class WorkQueuePlan(models.Model):
             plan.backlog_item_ids.unlink()
 
     def action_load_available(self):
+        """Carga/actualiza la columna de 'Operaciones disponibles' del centro."""
         for plan in self:
             if not plan.workcenter_id:
                 raise UserError(_("Seleccione un Centro de trabajo."))
             plan._clean_backlog()
+
             QueueItem = self.env["work.queue.item"]
             Workorder = self.env["mrp.workorder"]
+
             wo_domain = [
                 ("workcenter_id", "=", plan.workcenter_id.id),
                 ("state", "in", AVAILABLE_STATES),
             ]
             workorders = Workorder.search(wo_domain)
+
             existing_items = QueueItem.search([("workorder_id", "in", workorders.ids)])
             by_wo = {it.workorder_id.id: it for it in existing_items}
+
             for wo in workorders:
                 item = by_wo.get(wo.id)
                 if item:
