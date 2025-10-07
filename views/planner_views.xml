@@ -1,4 +1,41 @@
 <odoo>
+
+  <!-- ===== Listado (tree) de colas existentes ===== -->
+  <record id="view_work_queue_plan_tree" model="ir.ui.view">
+    <field name="name">work.queue.plan.tree</field>
+    <field name="model">work.queue.plan</field>
+    <field name="arch" type="xml">
+      <tree>
+        <field name="workcenter_id" string="Centro de trabajo"/>
+        <field name="employee_id"  string="Empleado"/>
+        <field name="line_count"   string="En cola"/>
+        <field name="write_date"   string="Última actualización"/>
+      </tree>
+    </field>
+  </record>
+
+  <!-- ===== Buscador / Filtros ===== -->
+  <record id="view_work_queue_plan_search" model="ir.ui.view">
+    <field name="name">work.queue.plan.search</field>
+    <field name="model">work.queue.plan</field>
+    <field name="arch" type="xml">
+      <search>
+        <field name="workcenter_id" string="Centro de trabajo"/>
+        <field name="employee_id"   string="Empleado"/>
+
+        <separator/>
+
+        <filter string="Por centro"    context="{'group_by': 'workcenter_id'}"/>
+        <filter string="Por empleado"  context="{'group_by': 'employee_id'}"/>
+
+        <separator/>
+
+        <filter string="Últimas 24 h" domain="[('write_date','&gt;=', (context_today() + ' 00:00:00'))]"/>
+      </search>
+    </field>
+  </record>
+
+  <!-- ===== Form ancho (sin cambios funcionales) ===== -->
   <record id="view_work_queue_plan_form" model="ir.ui.view">
     <field name="name">work.queue.plan.form</field>
     <field name="model">work.queue.plan</field>
@@ -67,4 +104,5 @@
       </form>
     </field>
   </record>
+
 </odoo>

@@ -1,13 +1,15 @@
 <odoo>
-  <!-- Acción principal: abrir el planificador en formulario -->
+  <!-- Acción principal: abrir el listado de planes (tree) y luego form -->
   <record id="action_work_queue_plan_by_wc" model="ir.actions.act_window">
     <field name="name">Planificador</field>
     <field name="res_model">work.queue.plan</field>
-    <field name="view_mode">form</field>
+    <field name="view_mode">tree,form</field>
+    <field name="view_id" ref="view_work_queue_plan_tree"/>
+    <field name="search_view_id" ref="view_work_queue_plan_search"/>
     <field name="target">current</field>
     <field name="context">{}</field>
     <field name="help" type="html">
-      <p>Seleccione Centro de trabajo y Empleado, pulse <b>Cargar disponibles</b>, asigne con → y reordene con el manejador (#).</p>
+      <p>Seleccioná una cola para editarla o pulsá <b>Nuevo</b> para crear un plan y organizar la cola del empleado.</p>
     </field>
   </record>
 
