@@ -13,6 +13,7 @@
         "views/planner_views.xml",
         "views/menu.xml",
     ],
+    "post_init_hook": "post_init_hook",
     "assets": {
     "web.assets_backend": [
         "mrp_work_queue/static/src/css/queue.css",
