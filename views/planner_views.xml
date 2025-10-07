@@ -14,19 +14,14 @@
     </field>
   </record>
 
-  <!-- SEARCH de la lista -->
+  <!-- SEARCH ultra simple (sin grupos/filters) -->
   <record id="view_work_queue_plan_search" model="ir.ui.view">
     <field name="name">work.queue.plan.search</field>
     <field name="model">work.queue.plan</field>
     <field name="arch" type="xml">
-      <search string="Buscar colas">
+      <search>
         <field name="workcenter_id"/>
         <field name="employee_id"/>
-
-        <group expand="0" string="Agrupar por">
-          <filter string="Centro de trabajo" context="{'group_by':'workcenter_id'}"/>
-          <filter string="Empleado" context="{'group_by':'employee_id'}"/>
-        </group>
       </search>
     </field>
   </record>
