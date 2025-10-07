@@ -9,7 +9,7 @@
     <field name="target">current</field>
     <field name="context">{}</field>
     <field name="help" type="html">
-      <p>Seleccioná una cola para editarla o pulsá <b>Nuevo</b> para crear un plan y organizar la cola del empleado.</p>
+      <p>Seleccioná una cola para editarla o pulsá <b>Nuevo</b> para crear/organizar una cola.</p>
     </field>
   </record>
 

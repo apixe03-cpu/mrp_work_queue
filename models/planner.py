@@ -7,10 +7,9 @@ AVAILABLE_STATES = ("ready", "pending", "progress")
 class WorkQueuePlan(models.Model):
     _name = "work.queue.plan"
     _description = "Planificador por empleado"
-    _order = "workcenter_id, employee_id, id"
 
     workcenter_id = fields.Many2one("mrp.workcenter", required=True, string="Workcenter")
-    employee_id   = fields.Many2one("hr.employee", required=True, string="Employee")
+    employee_id   = fields.Many2one("hr.employee",   required=True, string="Employee")
     company_id    = fields.Many2one("res.company", default=lambda s: s.env.company, string="Company")
 
     # Derecha: cola del empleado
@@ -19,25 +18,13 @@ class WorkQueuePlan(models.Model):
     # Izquierda: backlog calculado/cargado para este plan
     backlog_item_ids = fields.One2many("work.queue.item", "plan_backlog_helper_id", string="")
 
-    # --------- Extras para el listado ---------
-    line_count = fields.Integer(string="En cola", compute="_compute_line_count", compute_sudo=True)
+    # Contador para la lista
+    line_count = fields.Integer(string="En cola", compute="_compute_line_count", store=False)
 
-    @api.depends('line_ids')
     def _compute_line_count(self):
-        for plan in self:
-            plan.line_count = len(plan.line_ids)
-
-    def name_get(self):
-        """Mostrar como 'Centro - Empleado' en el listado/Many2one."""
-        res = []
         for rec in self:
-            wc = rec.workcenter_id.display_name or ""
-            emp = rec.employee_id.name or ""
-            name = f"{wc} - {emp}".strip(" - ")
-            res.append((rec.id, name))
-        return res
+            rec.line_count = len(rec.line_ids)
 
-    # --------- Lógica existente ---------
     def _clean_backlog(self):
         for plan in self:
             plan.backlog_item_ids.unlink()
