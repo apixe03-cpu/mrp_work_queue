@@ -5,12 +5,12 @@
     <field name="name">work.queue.plan.tree</field>
     <field name="model">work.queue.plan</field>
     <field name="arch" type="xml">
-      <tree>
+      <list>
         <field name="workcenter_id" string="Centro de trabajo"/>
         <field name="employee_id"  string="Empleado"/>
         <field name="line_count"   string="En cola"/>
         <field name="write_date"   string="Última actualización"/>
-      </tree>
+      </list>
     </field>
   </record>
 
