@@ -1,0 +1,15 @@
+<odoo>
+  <!-- Inherit de la plantilla del reporte de Orden de Trabajo -->
+  <template id="report_workorder_qr_inherit" inherit_id="mrp_workorder.report_workorder">
+    <xpath expr="//div[contains(@class,'page')]" position="inside">
+      <!-- Bloque QR (chico y no invasivo). Podés moverlo de lugar si querés -->
+      <div style="display:flex; justify-content:flex-end; margin-bottom:8px;">
+        <div style="text-align:right;">
+          <div style="font-size:12px; margin-bottom:4px;">OT QR</div>
+          <!-- Usamos la URL calculada. Si no existiera por algún motivo, cae a name -->
+          <img t-att-src="'/report/barcode/QR/%s?width=200&height=200&humanreadable=0' % (doc.qr_url or doc.name)"/>
+        </div>
+      </div>
+    </xpath>
+  </template>
+</odoo>

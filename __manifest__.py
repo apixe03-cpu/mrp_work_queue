@@ -12,6 +12,7 @@
         "security/ir.model.access.csv",
         "views/planner_views.xml",
         "views/menu.xml",
+        "views/report_workorder_qr.xml",
     ],
     "post_init_hook": "post_init_hook",
     "assets": {
