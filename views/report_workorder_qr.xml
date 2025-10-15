@@ -1,10 +1,10 @@
 <odoo>
-  <!-- Paperformat 80mm -->
+  <!-- Paperformat 80 mm para térmica -->
   <record id="paperformat_workorder_80mm" model="report.paperformat">
     <field name="name">WO 80mm</field>
     <field name="format">custom</field>
-    <field name="page_width">80</field>
-    <field name="page_height">200</field>
+    <field name="page_width">80</field>     <!-- mm -->
+    <field name="page_height">200</field>   <!-- altura aprox; ajustá si querés -->
     <field name="orientation">Portrait</field>
     <field name="margin_top">5</field>
     <field name="margin_bottom">5</field>
@@ -13,14 +13,16 @@
     <field name="dpi">90</field>
   </record>
 
-  <!-- Inherit del QWeb: reemplaza barras por QR grande -->
+  <!-- Inherit del informe de OT: agregamos QR grande arriba a la derecha -->
   <template id="report_mrp_workorder_qr_inherit" inherit_id="mrp.report_mrp_workorder">
+    <!-- precomputo URL al formulario de la OT -->
     <xpath expr="//div[contains(@class,'page')]" position="inside">
       <t t-set="base_url" t-value="request.env['ir.config_parameter'].sudo().get_param('web.base.url')"/>
       <t t-set="qr_url"
          t-value="base_url + '/web#id=%d&amp;model=mrp.workorder&amp;view_type=form' % (o.id,)"/>
     </xpath>
 
+    <!-- reemplazo la fila de título por una con el QR a la derecha -->
     <xpath expr="(//div[contains(@class,'row')])[1]" position="replace">
       <div class="row" style="display:flex; justify-content:space-between; align-items:flex-start;">
         <div><h2 t-esc="o.name"/></div>
@@ -29,12 +31,6 @@
                 t-options="{'widget':'barcode','barcode_type':'QR','width':180,'height':180,'humanreadable': False}"/>
         </div>
       </div>
-    </xpath>
-
-    <!-- eliminar barras de código que traiga el base -->
-    <xpath expr="//span[@t-options and contains(@t-options, &quot;'widget': 'barcode'&quot;)]"
-           position="replace">
-      <t/>
     </xpath>
   </template>
 </odoo>
