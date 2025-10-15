@@ -1,6 +1,7 @@
 <odoo>
+  <!-- Paperformat para impresora térmica 80mm -->
   <record id="paperformat_workorder_80mm" model="report.paperformat">
-    <field name="name">WO 80mm</field>
+    <field name="name">WorkOrder 80mm</field>
     <field name="format">custom</field>
     <field name="page_width">80</field>
     <field name="page_height">0</field>
@@ -12,26 +13,34 @@
     <field name="dpi">90</field>
   </record>
 
-  <record id="mrp.action_report_mrp_workorder" model="ir.actions.report">
+  <!-- Nuevo reporte de OT versión térmica -->
+  <record id="action_report_mrp_workorder_80mm" model="ir.actions.report">
+    <field name="name">Orden de Trabajo (80mm)</field>
+    <field name="model">mrp.workorder</field>
+    <field name="report_type">qweb-pdf</field>
+    <field name="report_name">mrp.report_mrp_workorder</field>
     <field name="paperformat_id" ref="mrp_work_queue.paperformat_workorder_80mm"/>
   </record>
 
-  <record id="report_mrp_workorder_thermal" model="ir.ui.view">
-    <field name="name">report_mrp_workorder_thermal</field>
+  <!-- Ajustes de vista para ticket 80mm -->
+  <record id="report_mrp_workorder_80mm_view" model="ir.ui.view">
+    <field name="name">report_mrp_workorder_80mm_view</field>
     <field name="model">mrp.workorder</field>
     <field name="inherit_id" ref="mrp.report_mrp_workorder"/>
     <field name="arch" type="xml">
-      <xpath expr="//div[contains(@class,'page')]" position="attributes">
-        <attribute name="style">padding:6mm 5mm 5mm 5mm; font-size:10pt;</attribute>
-      </xpath>
+      <!-- reemplaza el código de barra viejo -->
       <xpath expr="//span[@t-options and contains(@t-options, &quot;'widget': 'barcode'&quot;)]" position="replace">
-        <div style="text-align:right; margin-top:2mm;">
+        <div style="text-align:right; margin-top:3mm;">
           <span t-field="o.name"
                 t-options="{'widget': 'barcode',
                             'barcode_type': 'CODE128',
                             'width': 380, 'height': 70,
                             'img_style': 'width:70mm;height:14mm'}"/>
         </div>
+      </xpath>
+      <!-- Ajuste márgenes y tamaño fuente -->
+      <xpath expr="//div[contains(@class,'page')]" position="attributes">
+        <attribute name="style">padding:5mm;font-size:10pt;</attribute>
       </xpath>
     </field>
   </record>
