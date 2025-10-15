@@ -28,20 +28,20 @@
     <field name="model">mrp.workorder</field>
     <field name="inherit_id" ref="mrp.report_mrp_workorder"/>
     <field name="arch" type="xml">
-      <!-- reemplaza el código de barra viejo -->
+      <!-- Reemplazar código de barras -->
       <xpath expr="//span[@t-options and contains(@t-options, &quot;'widget': 'barcode'&quot;)]" position="replace">
-        <div style="text-align:right; margin-top:3mm;">
+        <div style="text-align:center; margin-top:4mm;">
           <span t-field="o.name"
                 t-options="{'widget': 'barcode',
                             'barcode_type': 'CODE128',
-                            'width': 380, 'height': 70,
-                            'img_style': 'width:70mm;height:14mm'}"/>
+                            'width': 600, 'height': 100,
+                            'img_style': 'width:70mm;height:14mm;'}"/>
         </div>
       </xpath>
-      <!-- Ajuste márgenes y tamaño fuente -->
+
+      <!-- Ajustar márgenes y escala para ticket 80mm -->
       <xpath expr="//div[contains(@class,'page')]" position="attributes">
-        <attribute name="style">padding:5mm;font-size:10pt;</attribute>
+        <attribute name="style">padding:3mm;font-size:9pt;width:72mm;overflow:hidden;</attribute>
       </xpath>
     </field>
   </record>
-</odoo>
