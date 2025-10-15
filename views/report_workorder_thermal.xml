@@ -1,10 +1,9 @@
 <odoo>
-  <!-- 1) Formato de papel 80 mm (PDF); sin report_type -->
   <record id="paperformat_workorder_80mm" model="report.paperformat">
     <field name="name">WO 80mm</field>
     <field name="format">custom</field>
-    <field name="page_width">80</field>        <!-- mm -->
-    <field name="page_height">0</field>        <!-- alto libre (pdf continuous) -->
+    <field name="page_width">80</field>
+    <field name="page_height">0</field>
     <field name="orientation">Portrait</field>
     <field name="margin_top">5</field>
     <field name="margin_bottom">5</field>
@@ -13,29 +12,20 @@
     <field name="dpi">90</field>
   </record>
 
-  <!-- 2) Enlazar el paperformat al reporte nativo de Workorder -->
   <record id="mrp.action_report_mrp_workorder" model="ir.actions.report">
     <field name="paperformat_id" ref="mrp_work_queue.paperformat_workorder_80mm"/>
   </record>
 
-  <!-- 3) Heredar el template y: 
-        - REEMPLAZAR el barcode existente por uno solo
-        - Ajustar márgenes/tamaño de letra para 80mm -->
   <record id="report_mrp_workorder_thermal" model="ir.ui.view">
     <field name="name">report_mrp_workorder_thermal</field>
     <field name="model">mrp.workorder</field>
     <field name="inherit_id" ref="mrp.report_mrp_workorder"/>
     <field name="arch" type="xml">
-
-      <!-- 3.a) Reducir padding general de la página del reporte -->
       <xpath expr="//div[contains(@class,'page')]" position="attributes">
         <attribute name="style">padding:6mm 5mm 5mm 5mm; font-size:10pt;</attribute>
       </xpath>
-
-      <!-- 3.b) Reemplazar el span de barcode original por UNO solo -->
       <xpath expr="//span[@t-options and contains(@t-options, &quot;'widget': 'barcode'&quot;)]" position="replace">
         <div style="text-align:right; margin-top:2mm;">
-          <!-- Un solo CODE128 con dimensiones pensadas para 80mm -->
           <span t-field="o.name"
                 t-options="{'widget': 'barcode',
                             'barcode_type': 'CODE128',
@@ -43,7 +33,6 @@
                             'img_style': 'width:70mm;height:14mm'}"/>
         </div>
       </xpath>
-
     </field>
   </record>
 </odoo>
