@@ -4,7 +4,7 @@
     <field name="name">WO 80mm</field>
     <field name="format">custom</field>
     <field name="page_width">80</field>     <!-- mm -->
-    <field name="page_height">200</field>   <!-- altura aprox; ajustá si querés -->
+    <field name="page_height">200</field>   <!-- mm: ajustá si querés más/menos alto -->
     <field name="orientation">Portrait</field>
     <field name="margin_top">5</field>
     <field name="margin_bottom">5</field>
@@ -13,23 +13,18 @@
     <field name="dpi">90</field>
   </record>
 
-  <!-- Inherit del informe de OT: agregamos QR grande arriba a la derecha -->
+  <!-- Inyectar QR SIEMPRE: bloque absoluto arriba-derecha dentro de la página -->
   <template id="report_mrp_workorder_qr_inherit" inherit_id="mrp.report_mrp_workorder">
-    <!-- precomputo URL al formulario de la OT -->
-    <xpath expr="//div[contains(@class,'page')]" position="inside">
+    <!-- Genero la URL al formulario de la OT -->
+    <xpath expr="//div[contains(concat(' ', normalize-space(@class), ' '), ' page ')]" position="inside">
       <t t-set="base_url" t-value="request.env['ir.config_parameter'].sudo().get_param('web.base.url')"/>
       <t t-set="qr_url"
          t-value="base_url + '/web#id=%d&amp;model=mrp.workorder&amp;view_type=form' % (o.id,)"/>
-    </xpath>
 
-    <!-- reemplazo la fila de título por una con el QR a la derecha -->
-    <xpath expr="(//div[contains(@class,'row')])[1]" position="replace">
-      <div class="row" style="display:flex; justify-content:space-between; align-items:flex-start;">
-        <div><h2 t-esc="o.name"/></div>
-        <div style="text-align:right;">
-          <span t-esc="qr_url"
-                t-options="{'widget':'barcode','barcode_type':'QR','width':180,'height':180,'humanreadable': False}"/>
-        </div>
+      <!-- QR fijo en la esquina superior derecha -->
+      <div style="position:absolute; right:5mm; top:5mm;">
+        <span t-esc="qr_url"
+              t-options="{'widget':'barcode','barcode_type':'QR','width':140,'height':140,'humanreadable': False}"/>
       </div>
     </xpath>
   </template>
