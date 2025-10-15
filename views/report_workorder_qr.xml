@@ -1,12 +1,19 @@
 <odoo>
-  <!-- Reemplaza el código de barras existente por un QR -->
+  <!-- Añadir QR al reporte de Orden de Trabajo -->
   <template id="report_mrp_workorder_qr_inherit" inherit_id="mrp.report_mrp_workorder">
-    <!-- Localizamos el <span> que muestra el código de barras del MO -->
-    <xpath expr="//span[@t-field='o.production_id.name']" position="replace">
-      <!-- Mostramos un QR por operación; si querés usar el nombre de la operación: o.name -->
-      <span
-        t-esc="o.name"
-        t-options="{'widget': 'barcode', 'type': 'QR', 'width': 90, 'height': 90, 'img_style': 'width:90px;height:90px'}"/>
+    <!-- En el header, a la derecha -->
+    <xpath expr="//div[contains(@class,'row')][1]" position="inside">
+      <div style="float:right; text-align:right;">
+        <!-- QR con el nombre de la OT (ej. WH/MO/00044-01) -->
+        <span t-field="o.name"
+              t-options="{
+                'widget': 'barcode',
+                'barcode_type': 'QR',
+                'width': 120,
+                'height': 120,
+                'humanreadable': False
+              }"/>
+      </div>
     </xpath>
   </template>
 </odoo>
