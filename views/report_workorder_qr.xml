@@ -1,19 +1,51 @@
 <odoo>
-  <!-- Añadir QR al reporte de Orden de Trabajo -->
+  <!-- Formato papel 80mm -->
+  <record id="paperformat_workorder_80mm" model="report.paperformat">
+    <field name="name">WO 80mm</field>
+    <field name="report_type">qweb-pdf</field>
+    <field name="format">custom</field>
+    <field name="page_width">80</field>   <!-- mm -->
+    <field name="page_height">0</field>   <!-- alto libre -->
+    <field name="orientation">Portrait</field>
+    <field name="margin_top">5</field>
+    <field name="margin_bottom">5</field>
+    <field name="margin_left">5</field>
+    <field name="margin_right">5</field>
+    <field name="dpi">90</field>
+  </record>
+
+  <!-- Forzar el reporte de OT a usar el papel 80mm -->
+  <record id="set_paper_80mm_on_wo" model="ir.actions.report">
+    <field name="paperformat_id" ref="mrp_work_queue.paperformat_workorder_80mm"/>
+    <field name="id" eval="ref('mrp.action_report_mrp_workorder')"/>
+  </record>
+
+  <!-- Reemplazar barras por un solo QR arriba a la derecha -->
   <template id="report_mrp_workorder_qr_inherit" inherit_id="mrp.report_mrp_workorder">
-    <!-- En el header, a la derecha -->
-    <xpath expr="//div[contains(@class,'row')][1]" position="inside">
-      <div style="float:right; text-align:right;">
-        <!-- QR con el nombre de la OT (ej. WH/MO/00044-01) -->
-        <span t-field="o.name"
-              t-options="{
-                'widget': 'barcode',
-                'barcode_type': 'QR',
-                'width': 120,
-                'height': 120,
-                'humanreadable': False
-              }"/>
+    <!-- 1) Defino la URL al formulario de la OT -->
+    <xpath expr="//div[contains(@class,'page')]" position="inside">
+      <t t-set="base_url" t-value="request.env['ir.config_parameter'].sudo().get_param('web.base.url')"/>
+      <t t-set="qr_url"
+         t-value="base_url + '/web#id=%d&amp;model=mrp.workorder&amp;view_type=form' % (o.id,)"/>
+    </xpath>
+
+    <!-- 2) Reemplazo el bloque donde están las barras por el QR -->
+    <!-- Apunta al primer contenedor de cabecera; si tu template difiere, este xpath funciona en Odoo 16-18 -->
+    <xpath expr="(//div[contains(@class,'row')])[1]" position="replace">
+      <div class="row" style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <h2 t-esc="o.name"/>
+        </div>
+        <div style="text-align:right;">
+          <span t-esc="qr_url"
+                t-options="{'widget':'barcode','barcode_type':'QR','width':180,'height':180,'humanreadable': False}"/>
+        </div>
       </div>
+    </xpath>
+
+    <!-- 3) Por si quedaran otras barras en la cabecera, las vacío -->
+    <xpath expr="//span[@t-options and contains(@t-options, &quot;'widget': 'barcode'&quot;)]" position="replace">
+      <t/>
     </xpath>
   </template>
 </odoo>
