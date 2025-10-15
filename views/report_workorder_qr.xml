@@ -1,10 +1,10 @@
 <odoo>
-  <!-- Paperformat 80 mm (sin report_type) -->
+  <!-- Paperformat 80mm -->
   <record id="paperformat_workorder_80mm" model="report.paperformat">
     <field name="name">WO 80mm</field>
     <field name="format">custom</field>
-    <field name="page_width">80</field>     <!-- mm -->
-    <field name="page_height">200</field>   <!-- alto fijo; Odoo no admite alto infinito -->
+    <field name="page_width">80</field>
+    <field name="page_height">200</field>
     <field name="orientation">Portrait</field>
     <field name="margin_top">5</field>
     <field name="margin_bottom">5</field>
@@ -13,26 +13,17 @@
     <field name="dpi">90</field>
   </record>
 
-  <!-- Asignar el paperformat al reporte nativo de OT -->
-  <record id="mrp.action_report_mrp_workorder" model="ir.actions.report">
-    <field name="paperformat_id" ref="mrp_work_queue.paperformat_workorder_80mm"/>
-  </record>
-
-  <!-- Inherit del QWeb para mostrar SOLO un QR -->
+  <!-- Inherit del QWeb: reemplaza barras por QR grande -->
   <template id="report_mrp_workorder_qr_inherit" inherit_id="mrp.report_mrp_workorder">
-    <!-- Construyo la URL a la OT -->
     <xpath expr="//div[contains(@class,'page')]" position="inside">
       <t t-set="base_url" t-value="request.env['ir.config_parameter'].sudo().get_param('web.base.url')"/>
       <t t-set="qr_url"
          t-value="base_url + '/web#id=%d&amp;model=mrp.workorder&amp;view_type=form' % (o.id,)"/>
     </xpath>
 
-    <!-- Cabecera con título + QR (reemplaza bloque superior) -->
     <xpath expr="(//div[contains(@class,'row')])[1]" position="replace">
       <div class="row" style="display:flex; justify-content:space-between; align-items:flex-start;">
-        <div>
-          <h2 t-esc="o.name"/>
-        </div>
+        <div><h2 t-esc="o.name"/></div>
         <div style="text-align:right;">
           <span t-esc="qr_url"
                 t-options="{'widget':'barcode','barcode_type':'QR','width':180,'height':180,'humanreadable': False}"/>
@@ -40,8 +31,9 @@
       </div>
     </xpath>
 
-    <!-- Eliminar cualquier otra barra que deje el template base -->
-    <xpath expr="//span[@t-options and contains(@t-options, &quot;'widget': 'barcode'&quot;)]" position="replace">
+    <!-- eliminar barras de código que traiga el base -->
+    <xpath expr="//span[@t-options and contains(@t-options, &quot;'widget': 'barcode'&quot;)]"
+           position="replace">
       <t/>
     </xpath>
   </template>
