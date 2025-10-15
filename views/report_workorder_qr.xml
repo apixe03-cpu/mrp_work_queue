@@ -1,34 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-  <!-- Paperformat para impresora térmica 80mm -->
+
+  <!-- Formato térmico 80mm -->
   <record id="paperformat_workorder_80mm" model="report.paperformat">
-    <field name="name">WorkOrder 80mm</field>
+    <field name="name">WO 80mm</field>
     <field name="format">custom</field>
-    <field name="page_width">80</field>
-    <field name="page_height">0</field>
+    <field name="page_width">80</field>      <!-- mm -->
+    <field name="page_height">2000</field>   <!-- alto grande para ticket largo -->
     <field name="orientation">Portrait</field>
     <field name="margin_top">5</field>
     <field name="margin_bottom">5</field>
-    <field name="margin_left">5</field>
-    <field name="margin_right">5</field>
+    <field name="margin_left">4</field>
+    <field name="margin_right">4</field>
     <field name="dpi">90</field>
   </record>
 
-  <!-- Nuevo reporte de OT versión térmica -->
-  <record id="action_report_mrp_workorder_80mm" model="ir.actions.report">
-    <field name="name">Orden de Trabajo (80mm)</field>
-    <field name="model">mrp.workorder</field>
-    <field name="report_type">qweb-pdf</field>
-    <field name="report_name">mrp.report_mrp_workorder</field>
-    <field name="paperformat_id" ref="mrp_work_queue.paperformat_workorder_80mm"/>
-  </record>
-
-  <!-- Ajustes de vista para ticket 80mm -->
+  <!-- Ajustes visuales + código de barras en el reporte nativo de la OT -->
   <record id="report_mrp_workorder_80mm_view" model="ir.ui.view">
     <field name="name">report_mrp_workorder_80mm_view</field>
     <field name="model">mrp.workorder</field>
     <field name="inherit_id" ref="mrp.report_mrp_workorder"/>
     <field name="arch" type="xml">
-      <!-- Reemplazar código de barras -->
+
+      <!-- Reemplazamos el barcode por uno dimensionado a 80mm -->
       <xpath expr="//span[@t-options and contains(@t-options, &quot;'widget': 'barcode'&quot;)]" position="replace">
         <div style="text-align:center; margin-top:4mm;">
           <span t-field="o.name"
@@ -39,9 +33,17 @@
         </div>
       </xpath>
 
-      <!-- Ajustar márgenes y escala para ticket 80mm -->
+      <!-- Reducimos paddings para que encaje en 80mm -->
       <xpath expr="//div[contains(@class,'page')]" position="attributes">
         <attribute name="style">padding:3mm;font-size:9pt;width:72mm;overflow:hidden;</attribute>
       </xpath>
+
     </field>
   </record>
+
+  <!-- Forzamos que el reporte de OT use el paperformat de 80mm -->
+  <record id="mrp.action_report_mrp_workorder" model="ir.actions.report">
+    <field name="paperformat_id" ref="mrp_work_queue.paperformat_workorder_80mm"/>
+  </record>
+
+</odoo>
