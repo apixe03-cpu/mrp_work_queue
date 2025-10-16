@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
 
-  <!-- Formato térmico 80mm (ancho real ~72 mm útiles) -->
+  <!-- Formato térmico 80mm (ancho útil ~72 mm) -->
   <record id="paperformat_workorder_80mm" model="report.paperformat">
     <field name="name">WO 80mm</field>
     <field name="format">custom</field>
@@ -15,39 +15,34 @@
     <field name="dpi">300</field>
   </record>
 
-  <!-- Template QWeb propio (no hereda el de mrp) -->
+  <!-- Template QWeb propio para ticket 80mm -->
   <template id="report_workorder_80mm">
     <t t-call="web.html_container">
-    <t t-call-assets="web.report_assets_common" t-js="false"/>
+      <!-- assets de reportes (asegura fuentes embebidas) -->
+      <t t-call-assets="web.report_assets_common" t-js="false"/>
       <t t-foreach="docs" t-as="o">
         <div class="page"
-             style="width:72mm; padding:3mm; font-size:11pt; font-family:'DejaVu Sans','Noto Sans',sans-serif;">
+             style="width:72mm; padding:3mm; font-size:11pt; font-family:'DejaVu Sans',sans-serif;">
 
-          <!-- Título -->
+          <!-- Titulo -->
           <h2 style="text-align:center; font-size:14pt; line-height:1.1; margin:0 0 2mm 0;">
             <t t-esc="o.name"/>
           </h2>
 
-          <!-- Centro/trabajo / operación (opcional) -->
+          <!-- Centro de trabajo (opcional) -->
           <div style="text-align:center; margin:0 0 3mm 0;">
-            <t t-esc="(o.workcenter_id.name or '')"/>
+            <t t-esc="o.workcenter_id and o.workcenter_id.name or ''"/>
           </div>
 
           <!-- Responsable -->
           <div style="margin:0 0 2mm 0;">
             <b>Responsable:</b>
-            <t t-esc="
-    (('employee_id' in o._fields) and o.employee_id and o.employee_id.name)
-    or (('user_id' in o._fields) and o.user_id and o.user_id.name)
-    or (o.production_id and ('user_id' in o.production_id._fields)
-        and o.production_id.user_id and o.production_id.user_id.name)
-    or '-'
-"/>
+            <t t-esc="(o.production_id and o.production_id.user_id and o.production_id.user_id.name) or '-'"/>
           </div>
 
-          <!-- OF -->
+          <!-- Orden de fabricaci&oacute;n -->
           <div style="margin:0 0 2mm 0;">
-            <b>Orden de fabricación:</b>
+            <b>Orden de fabricaci&#243;n:</b>
             <t t-esc="o.production_id.name"/>
           </div>
 
@@ -57,35 +52,32 @@
             <t t-esc="o.product_id.display_name"/>
           </div>
 
-          <!-- Cantidad -->
+          <!-- Cantidad por producir -->
           <div style="margin:0 0 3mm 0;">
             <b>Cantidad por producir:</b>
             <t t-esc="o.qty_production"/> <t t-esc="o.product_uom_id.name"/>
           </div>
 
-          <!-- Componentes -->
+          <!-- Componentes (sin bullets raros, solo ASCII) -->
           <t t-if="o.move_raw_ids">
             <div style="border-top:1px dashed #000; padding-top:3mm; margin-top:2mm;">
               <b>Componentes:</b>
-              <ul style="margin:0; padding-left:3mm;">
+              <ul style="margin:0; padding-left:0; list-style:none;">
                 <t t-foreach="o.move_raw_ids" t-as="m">
-                  <li>
-                    <t t-esc="m.product_id.display_name"/> — 
-                    <t t-esc="m.product_uom_qty"/> <t t-esc="m.product_uom.name"/>
-                  </li>
+                  <li>- <t t-esc="m.product_id.display_name"/> - <t t-esc="m.product_uom_qty"/> <t t-esc="m.product_uom.name"/></li>
                 </t>
               </ul>
             </div>
           </t>
 
-          <!-- Código de barras centrado al final -->
+          <!-- Codigo de barras centrado y n&iacute;tido -->
           <div style="text-align:center; margin-top:6mm;">
             <span t-field="o.name"
                   t-options="{
                     'widget': 'barcode',
                     'barcode_type': 'CODE128',
-                    'width': 900, 'height': 220,
-                    'img_style': 'width:62mm;height:16mm;image-rendering: pixelated;-webkit-print-color-adjust: exact;'
+                    'width': 1200, 'height': 280,
+                    'img_style': 'width:66mm;height:18mm;image-rendering: crisp-edges;-webkit-print-color-adjust: exact;'
                   }"/>
           </div>
 
@@ -94,14 +86,13 @@
     </t>
   </template>
 
-  <!-- Acción de reporte NUEVA, con binding al modelo para que aparezca en Imprimir -->
+  <!-- Accion de reporte (aparece en Imprimir) -->
   <record id="action_report_mrp_workorder_80mm" model="ir.actions.report">
     <field name="name">Orden de Trabajo (80mm)</field>
     <field name="model">mrp.workorder</field>
     <field name="report_type">qweb-pdf</field>
     <field name="report_name">mrp_work_queue.report_workorder_80mm</field>
     <field name="paperformat_id" ref="mrp_work_queue.paperformat_workorder_80mm"/>
-    <!-- Hace que aparezca en el menú Imprimir -->
     <field name="binding_model_id" ref="mrp.model_mrp_workorder"/>
     <field name="binding_type">report</field>
     <field name="print_report_name">'OT_80mm_' + (object.name or '').replace('/','_')</field>
