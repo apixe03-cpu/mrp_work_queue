@@ -10,18 +10,7 @@ def post_init_hook(cr, registry):
     plans_wo_company = Plan.search([("company_id", "=", False)])
     if plans_wo_company:
         plans_wo_company.write({"company_id": env.company.id})
-    
-    paper = env.ref('mrp_work_queue.paperformat_workorder_80mm', raise_if_not_found=False)
-    
-    if not paper:
-        return
-    # Busco el reporte por report_name (robusto entre bases)
-    report = env['ir.actions.report'].search(
-        [('report_name', '=', 'mrp.report_mrp_workorder')], limit=1
-    )
-    if report and report.paperformat_id != paper:
-        report.paperformat_id = paper.id
-    
+
     # 2) Fusionar duplicados por (workcenter_id, employee_id, company_id)
     cr.execute("""
         SELECT array_agg(id ORDER BY id) AS ids
