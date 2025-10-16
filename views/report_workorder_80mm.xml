@@ -12,7 +12,7 @@
     <field name="margin_bottom">2</field>
     <field name="margin_left">2</field>
     <field name="margin_right">2</field>
-    <field name="dpi">90</field>
+    <field name="dpi">300</field>
   </record>
 
   <!-- Template QWeb propio (no hereda el de mrp) -->
@@ -20,7 +20,7 @@
     <t t-call="web.html_container">
       <t t-foreach="docs" t-as="o">
         <div class="page"
-             style="width:72mm; padding:3mm 2mm; font-size:10pt; font-family:monospace;">
+             style="width:72mm; padding:3mm; font-size:11pt; font-family:'DejaVu Sans', monospace;">
 
           <!-- Título -->
           <h2 style="text-align:center; font-size:14pt; line-height:1.1; margin:0 0 2mm 0;">
@@ -78,14 +78,15 @@
           </t>
 
           <!-- Código de barras centrado al final -->
-          <div style="text-align:center; margin-top:6mm;">
+          <div style="text-align:center; margin-top:4mm;">
             <span t-field="o.name"
                   t-options="{
-                    'widget': 'barcode',
-                    'barcode_type': 'CODE128',
-                    'width': 600, 'height': 120,
-                    'img_style': 'width:64mm;height:16mm;'
-                  }"/>
+            'widget': 'barcode',
+            'barcode_type': 'CODE128',
+            'width': 800,
+            'height': 200,
+            'img_style': 'width:68mm;height:18mm;image-rendering: crisp-edges;'
+              }"/>
           </div>
 
         </div>
