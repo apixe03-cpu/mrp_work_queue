@@ -62,13 +62,10 @@
 
           <!-- QR centrado (usando widget barcode con tipo QR) -->
           <div style="text-align:center; margin-top:6mm;">
-            <span t-field="o.name"
-                  t-options="{
-                    'widget': 'barcode',
-                    'barcode_type': 'QR',
-                    'width': 512, 'height': 512,
-                    'img_style': 'width:35mm;height:35mm;image-rendering: pixelated;-webkit-print-color-adjust: exact;'
-                  }"/>
+            <!-- URL de destino: abre la OT en el backend -->
+            <t t-set="qrtext" t-value="'/web#id=%d&model=mrp.workorder&view_type=form' % o.id"/>
+            <img t-att-src="'/report/barcode/?type=QR&value=%s&width=256&height=256' % qrtext"
+                  style="width:35mm;height:35mm;image-rendering: pixelated;-webkit-print-color-adjust: exact;"/>
           </div>
         </div>
       </t>
