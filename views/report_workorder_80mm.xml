@@ -60,14 +60,14 @@
             </div>
           </t>
 
-          <!-- QR sin widgets ni campos Python: usa /report/barcode -->
+          <!-- QR con /report/barcode (sin widgets) -->
           <div style="text-align:center; margin-top:6mm;">
 
-            <!-- Construyo la URL de destino (ya URL-encodeada para meterla como value=...) -->
-            <!-- '/web#id=...&model=...&view_type=form'  ==>  '/web%23id=...%26model=...%26view_type=form' -->
-            <t t-set="qrtext" t-value="'/web%23id=%d%26model=mrp.workorder%26view_type=form' % o.id"/>
+            <!-- Construyo el texto del QR (ya con # y & URL-encodeados) -->
+            <t t-set="qrtext"
+              t-value="'/web%23id=' + str(o.id) + '%26model=mrp.workorder%26view_type=form'"/>
 
-            <!-- Armamos el src del QR -->
+            <!-- Ojo: en XML los & del src van como &amp; -->
             <img t-att-src="'/report/barcode/?type=QR&amp;width=256&amp;height=256&amp;value=' + qrtext"
                 style="width:35mm;height:35mm;image-rendering: pixelated;-webkit-print-color-adjust: exact;"/>
           </div>
