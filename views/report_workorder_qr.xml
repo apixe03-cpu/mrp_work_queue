@@ -5,8 +5,8 @@
   <record id="paperformat_workorder_80mm" model="report.paperformat">
     <field name="name">WO 80mm</field>
     <field name="format">custom</field>
-    <field name="page_width">72</field>      <!-- mm -->
-    <field name="page_height">1000</field>   <!-- alto grande para ticket largo -->
+    <field name="page_width">72</field>      <!-- mm reales del rollo POS-80 (~72.1) -->
+    <field name="page_height">1000</field>   <!-- alto grande para tickets largos -->
     <field name="orientation">Portrait</field>
     <field name="margin_top">2</field>
     <field name="margin_bottom">2</field>
@@ -15,7 +15,7 @@
     <field name="dpi">90</field>
   </record>
 
-  <!-- Ajustes visuales + código de barras en el reporte nativo de la OT -->
+  <!-- Vista heredada: reemplaza TODO el cuerpo por un layout vertical grande tipo ticket -->
   <record id="report_mrp_workorder_80mm_view" model="ir.ui.view">
     <field name="name">report_mrp_workorder_80mm_view</field>
     <field name="model">mrp.workorder</field>
@@ -24,7 +24,7 @@
       <xpath expr="//div[contains(@class,'page')]" position="replace">
         <div class="page" style="width:72mm; padding:3mm; font-size:10pt; font-family:monospace;">
 
-          <h2 style="text-align:center; font-size:14pt; margin:0; padding:0;">
+          <h2 style="text-align:center; font-size:14pt; margin:0;">
             <t t-esc="o.name"/>
           </h2>
           <h3 style="text-align:center; margin:1mm 0 3mm 0;">
@@ -57,7 +57,10 @@
               <b>Componentes:</b>
               <ul style="margin:0; padding-left:2mm;">
                 <t t-foreach="o.move_raw_ids" t-as="m">
-                  <li><t t-esc="m.product_id.display_name"/> — <t t-esc="m.product_uom_qty"/> <t t-esc="m.product_uom.name"/></li>
+                  <li>
+                    <t t-esc="m.product_id.display_name"/> — 
+                    <t t-esc="m.product_uom_qty"/> <t t-esc="m.product_uom.name"/>
+                  </li>
                 </t>
               </ul>
             </div>
@@ -77,32 +80,12 @@
     </field>
   </record>
 
-      <!-- Reemplazamos el barcode por uno dimensionado a 80mm -->
-      <xpath expr="//span[@t-options and contains(@t-options, &quot;'widget': 'barcode'&quot;)]" position="replace">
-        <div style="text-align:center; margin-top:4mm;">
-          <span t-field="o.name"
-                t-options="{'widget': 'barcode',
-                            'barcode_type': 'CODE128',
-                            'width': 600, 'height': 100,
-                            'img_style': 'width:70mm;height:14mm;'}"/>
-        </div>
-      </xpath>
-
-      <!-- Reducimos paddings para que encaje en 80mm -->
-      <xpath expr="//div[contains(@class,'page')]" position="attributes">
-        <attribute name="style">padding:3mm;font-size:9pt;width:72mm;overflow:hidden;</attribute>
-      </xpath>
-
-    </field>
-  </record>
-
-  <!-- Acción NUEVA: imprime el mismo template de la OT pero con paperformat 80mm -->
+  <!-- Acción nueva: imprime la OT con el paperformat de 80mm -->
   <record id="action_report_mrp_workorder_80mm" model="ir.actions.report">
     <field name="name">Orden de Trabajo (80mm)</field>
     <field name="model">mrp.workorder</field>
     <field name="report_type">qweb-pdf</field>
-    <!-- usamos el template estándar de la OT -->
-    <field name="report_name">mrp.report_mrp_workorder</field>
+    <field name="report_name">mrp.report_mrp_workorder</field> <!-- usamos el template heredado -->
     <field name="paperformat_id" ref="mrp_work_queue.paperformat_workorder_80mm"/>
     <field name="print_report_name">'OT_80mm_' + (object.name or '').replace('/','_')</field>
   </record>
