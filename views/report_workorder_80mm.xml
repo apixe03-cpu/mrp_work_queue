@@ -86,14 +86,12 @@
 
   <!-- Acción de impresión: PDF con nuestro template y paperformat 80mm -->
   <record id="action_report_mrp_workorder_80mm" model="ir.actions.report">
-    <field name="name">Orden de Trabajo (80mm)</field>
-    <field name="model">mrp.workorder</field>
-    <field name="report_type">qweb-pdf</field>
-    <field name="report_name">mrp_work_queue.report_workorder_80mm</field>
-    <field name="paperformat_id" ref="mrp_work_queue.paperformat_workorder_80mm"/>
-    <field name="print_report_name">
-      'OT_80mm_' + (object.name or '').replace('/','_')
-    </field>
+      <field name="name">Orden de Trabajo (80mm)</field>
+      <field name="model">mrp.workorder</field>
+      <field name="report_type">qweb-pdf</field>
+      <field name="report_name">mrp_work_queue.report_workorder_80mm</field>  <!-- TU TEMPLATE -->
+      <field name="paperformat_id" ref="mrp_work_queue.paperformat_workorder_80mm"/>
+      <field name="print_report_name">'OT_80mm_' + (object.name or '').replace('/','_')</field>
   </record>
 
 </odoo>
