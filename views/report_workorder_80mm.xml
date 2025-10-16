@@ -75,7 +75,7 @@
           <!-- B) QR alternativo (dejar comentado si usas barcode) -->
           
           <div style="text-align:center; margin-top:6mm;">
-            <span t-field="o.qr_url"
+            <span t-field="o.name"
                   t-options="{
                     'widget': 'qrcode',
                     'width': 512, 'height': 512,
