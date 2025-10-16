@@ -14,7 +14,7 @@ class MrpWorkorder(models.Model):
                 rec.qr_token = uuid.uuid4().hex
 
     def _compute_qr_url(self):
-        base = self.env["ir.config_parameter"].sudo().get_param("web.base.url", "")
+        base = self.env['ir.config_parameter'].sudo().get_param('web.base.url', '')
         for rec in self:
             rec._ensure_token()
             rec.qr_url = f"{base}/wo/scan/{rec.qr_token}"

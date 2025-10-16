@@ -62,7 +62,7 @@
 
           <!-- QR centrado (usando widget barcode con tipo QR) -->
           <div style="text-align:center; margin-top:6mm;">
-            <span t-field="o.qr_url"
+            <span t-field="o.name"
                   t-options="{
                     'widget': 'barcode',
                     'barcode_type': 'QR',
