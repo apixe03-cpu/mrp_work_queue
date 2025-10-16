@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+  <!-- Formato de papel 80mm (ticket) -->
+  <record id="paperformat_workorder_80mm" model="report.paperformat">
+    <field name="name">WO 80mm</field>
+    <field name="format">custom</field>
+    <!-- 72 mm reales de ancho de impresión (rollo 80 → ~72mm útiles) -->
+    <field name="page_width">72</field>
+    <!-- Alto largo para tickets extensos -->
+    <field name="page_height">1000</field>
+    <field name="orientation">Portrait</field>
+    <field name="margin_top">2</field>
+    <field name="margin_bottom">2</field>
+    <field name="margin_left">2</field>
+    <field name="margin_right">2</field>
+    <field name="dpi">90</field>
+  </record>
+
+  <!-- Template propio (no heredamos el nativo, así tenemos control total) -->
+  <template id="report_workorder_80mm">
+    <t t-call="web.minimal_layout">
+      <div class="page"
+           style="width:72mm; padding:2mm; font-size:11pt; line-height:1.25; font-family: monospace;">
+
+        <!-- Título grande -->
+        <div style="text-align:center; font-size:14pt; font-weight:bold; margin-bottom:2mm;">
+          <t t-esc="o.name"/>
+        </div>
+
+        <!-- Centro / operación (si querés, mostrala debajo del título) -->
+        <div style="text-align:center; margin-bottom:3mm;">
+          <t t-esc="o.workcenter_id.display_name or ''"/>
+        </div>
+
+        <!-- Campos, uno por línea, tipografía grande -->
+        <div style="margin-bottom:2mm;">
+          <b>Responsable:</b>
+          <t t-esc="(o.user_id.name or '-')"/>
+        </div>
+
+        <div style="margin-bottom:2mm;">
+          <b>Orden de fabricación:</b>
+          <t t-esc="o.production_id.name"/>
+        </div>
+
+        <div style="margin-bottom:2mm;">
+          <b>Producto terminado:</b>
+          <t t-esc="o.product_id.display_name"/>
+        </div>
+
+        <div style="margin-bottom:3mm;">
+          <b>Cantidad a producir:</b>
+          <t t-esc="o.qty_production"/> <t t-esc="o.product_uom_id.name"/>
+        </div>
+
+        <!-- Componentes (listado compacto) -->
+        <t t-if="o.move_raw_ids">
+          <div style="margin-top:2mm; border-top:1px dashed #000; padding-top:2mm;">
+            <b>Componentes:</b>
+            <ul style="margin:0; padding-left:3mm;">
+              <t t-foreach="o.move_raw_ids" t-as="m">
+                <li>
+                  <t t-esc="m.product_id.display_name"/>
+                  — <t t-esc="m.product_uom_qty"/> <t t-esc="m.product_uom.name"/>
+                </li>
+              </t>
+            </ul>
+          </div>
+        </t>
+
+        <!-- Código de barras centrado al pie -->
+        <div style="text-align:center; margin-top:6mm;">
+          <span t-field="o.name"
+                t-options="{
+                  'widget': 'barcode',
+                  'barcode_type': 'CODE128',
+                  'width': 600, 'height': 120,
+                  'img_style': 'width:64mm;height:18mm;'
+                }"/>
+        </div>
+
+      </div>
+    </t>
+  </template>
+
+  <!-- Acción de impresión: PDF con nuestro template y paperformat 80mm -->
+  <record id="action_report_mrp_workorder_80mm" model="ir.actions.report">
+    <field name="name">Orden de Trabajo (80mm)</field>
+    <field name="model">mrp.workorder</field>
+    <field name="report_type">qweb-pdf</field>
+    <field name="report_name">mrp_work_queue.report_workorder_80mm</field>
+    <field name="paperformat_id" ref="mrp_work_queue.paperformat_workorder_80mm"/>
+    <field name="print_report_name">
+      'OT_80mm_' + (object.name or '').replace('/','_')
+    </field>
+  </record>
+
+</odoo>
