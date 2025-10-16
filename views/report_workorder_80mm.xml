@@ -95,7 +95,7 @@
     <field name="report_name">mrp_work_queue.report_workorder_80mm</field>
     <field name="paperformat_id" ref="mrp_work_queue.paperformat_workorder_80mm"/>
     <!-- Hace que aparezca en el menú Imprimir -->
-    <field name="binding_model_id" ref="base.model_mrp_workorder"/>
+    <field name="binding_model_id" ref="mrp.model_mrp_workorder"/>
     <field name="binding_type">report</field>
     <field name="print_report_name">'OT_80mm_' + (object.name or '').replace('/','_')</field>
   </record>
