@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
 
-  <!-- Formato térmico 80mm (ancho útil ~72 mm) -->
   <record id="paperformat_workorder_80mm" model="report.paperformat">
     <field name="name">WO 80mm</field>
     <field name="format">custom</field>
-    <field name="page_width">72</field>     <!-- mm -->
-    <field name="page_height">1000</field>  <!-- alto grande = ticket largo -->
+    <field name="page_width">72</field>
+    <field name="page_height">1000</field>
     <field name="orientation">Portrait</field>
     <field name="margin_top">2</field>
     <field name="margin_bottom">2</field>
@@ -15,50 +14,41 @@
     <field name="dpi">300</field>
   </record>
 
-  <!-- Template QWeb propio para ticket 80mm -->
   <template id="report_workorder_80mm">
     <t t-call="web.html_container">
-      <!-- assets de reportes (asegura fuentes embebidas) -->
       <t t-call-assets="web.report_assets_common" t-js="false"/>
       <t t-foreach="docs" t-as="o">
         <div class="page"
              style="width:72mm; padding:3mm; font-size:11pt; font-family:'DejaVu Sans',sans-serif;">
 
-          <!-- Titulo -->
           <h2 style="text-align:center; font-size:14pt; line-height:1.1; margin:0 0 2mm 0;">
             <t t-esc="o.name"/>
           </h2>
 
-          <!-- Centro de trabajo (opcional) -->
           <div style="text-align:center; margin:0 0 3mm 0;">
             <t t-esc="o.workcenter_id and o.workcenter_id.name or ''"/>
           </div>
 
-          <!-- Responsable -->
           <div style="margin:0 0 2mm 0;">
             <b>Responsable:</b>
             <t t-esc="(o.production_id and o.production_id.user_id and o.production_id.user_id.name) or '-'"/>
           </div>
 
-          <!-- Orden de fabricaci&oacute;n -->
           <div style="margin:0 0 2mm 0;">
-            <b>Orden de fabricaci&#243;n:</b>
+            <b>Orden de fabricacion:</b>
             <t t-esc="o.production_id.name"/>
           </div>
 
-          <!-- Producto terminado -->
           <div style="margin:0 0 2mm 0;">
             <b>Producto terminado:</b><br/>
             <t t-esc="o.product_id.display_name"/>
           </div>
 
-          <!-- Cantidad por producir -->
           <div style="margin:0 0 3mm 0;">
             <b>Cantidad por producir:</b>
             <t t-esc="o.qty_production"/> <t t-esc="o.product_uom_id.name"/>
           </div>
 
-          <!-- Componentes (sin bullets raros, solo ASCII) -->
           <t t-if="o.move_raw_ids">
             <div style="border-top:1px dashed #000; padding-top:3mm; margin-top:2mm;">
               <b>Componentes:</b>
@@ -70,23 +60,35 @@
             </div>
           </t>
 
-          <!-- Codigo de barras centrado y n&iacute;tido -->
+          <!-- ======= ELIGE UNA OPCION ======= -->
+          <!-- A) CODE128 nítido -->
           <div style="text-align:center; margin-top:6mm;">
             <span t-field="o.name"
                   t-options="{
                     'widget': 'barcode',
                     'barcode_type': 'CODE128',
-                    'width': 1200, 'height': 280,
-                    'img_style': 'width:66mm;height:18mm;image-rendering: crisp-edges;-webkit-print-color-adjust: exact;'
+                    'width': 1120, 'height': 260,
+                    'img_style': 'width:64mm;height:16mm;image-rendering: crisp-edges;-webkit-print-color-adjust: exact;'
                   }"/>
           </div>
+
+          <!-- B) QR alternativo (dejar comentado si usas barcode) -->
+          <!--
+          <div style="text-align:center; margin-top:6mm;">
+            <span t-field="o.qr_url"
+                  t-options="{
+                    'widget': 'qrcode',
+                    'width': 512, 'height': 512,
+                    'img_style': 'width:35mm;height:35mm;image-rendering: pixelated;-webkit-print-color-adjust: exact;'
+                  }"/>
+          </div>
+          -->
 
         </div>
       </t>
     </t>
   </template>
 
-  <!-- Accion de reporte (aparece en Imprimir) -->
   <record id="action_report_mrp_workorder_80mm" model="ir.actions.report">
     <field name="name">Orden de Trabajo (80mm)</field>
     <field name="model">mrp.workorder</field>
