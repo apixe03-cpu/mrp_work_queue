@@ -35,9 +35,13 @@
           <!-- Responsable -->
           <div style="margin:0 0 2mm 0;">
             <b>Responsable:</b>
-            <t t-esc="(o.employee_id and o.employee_id.name) 
-          or (o.production_id and o.production_id.user_id and o.production_id.user_id.name) 
-          or '-'"/>
+            <t t-esc="
+    (('employee_id' in o._fields) and o.employee_id and o.employee_id.name)
+    or (('user_id' in o._fields) and o.user_id and o.user_id.name)
+    or (o.production_id and ('user_id' in o.production_id._fields)
+        and o.production_id.user_id and o.production_id.user_id.name)
+    or '-'
+"/>
           </div>
 
           <!-- OF -->
