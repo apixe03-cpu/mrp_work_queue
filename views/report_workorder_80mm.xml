@@ -60,10 +60,12 @@
             </div>
           </t>
 
+          <!-- QR centrado (usando widget barcode con tipo QR) -->
           <div style="text-align:center; margin-top:6mm;">
             <span t-field="o.qr_url"
                   t-options="{
-                    'widget': 'qrcode',
+                    'widget': 'barcode',
+                    'barcode_type': 'QR',
                     'width': 512, 'height': 512,
                     'img_style': 'width:35mm;height:35mm;image-rendering: pixelated;-webkit-print-color-adjust: exact;'
                   }"/>
