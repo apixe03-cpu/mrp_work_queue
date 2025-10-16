@@ -1,3 +1,4 @@
 # -*- coding: utf-8 -*-
 from . import models
-from . import hooks
+from . import controllers
+from . import hooks  # si ya lo usabas

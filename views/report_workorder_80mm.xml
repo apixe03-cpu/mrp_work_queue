@@ -60,29 +60,14 @@
             </div>
           </t>
 
-          <!-- ======= ELIGE UNA OPCION ======= -->
-          <!-- A) CODE128 nítido 
           <div style="text-align:center; margin-top:6mm;">
-            <span t-field="o.name"
-                  t-options="{
-                    'widget': 'barcode',
-                    'barcode_type': 'CODE128',
-                    'width': 1120, 'height': 260,
-                    'img_style': 'width:64mm;height:16mm;image-rendering: crisp-edges;-webkit-print-color-adjust: exact;'
-                  }"/>
-          </div>-->
-
-          <!-- B) QR alternativo (dejar comentado si usas barcode) -->
-          
-          <div style="text-align:center; margin-top:6mm;">
-            <span t-field="o.name"
+            <span t-field="o.qr_url"
                   t-options="{
                     'widget': 'qrcode',
                     'width': 512, 'height': 512,
                     'img_style': 'width:35mm;height:35mm;image-rendering: pixelated;-webkit-print-color-adjust: exact;'
                   }"/>
           </div>
-          
         </div>
       </t>
     </t>

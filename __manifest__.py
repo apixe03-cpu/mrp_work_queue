@@ -13,6 +13,7 @@
         "views/planner_views.xml",
         "views/menu.xml",
         "views/report_workorder_80mm.xml",
+        "views/wo_scan_templates.xml",
     ],
     "post_init_hook": "post_init_hook",
     "assets": {
