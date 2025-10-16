@@ -61,7 +61,7 @@
           </t>
 
           <!-- ======= ELIGE UNA OPCION ======= -->
-          <!-- A) CODE128 nítido -->
+          <!-- A) CODE128 nítido 
           <div style="text-align:center; margin-top:6mm;">
             <span t-field="o.name"
                   t-options="{
@@ -70,10 +70,10 @@
                     'width': 1120, 'height': 260,
                     'img_style': 'width:64mm;height:16mm;image-rendering: crisp-edges;-webkit-print-color-adjust: exact;'
                   }"/>
-          </div>
+          </div>-->
 
           <!-- B) QR alternativo (dejar comentado si usas barcode) -->
-          <!--
+          
           <div style="text-align:center; margin-top:6mm;">
             <span t-field="o.qr_url"
                   t-options="{
@@ -82,8 +82,7 @@
                     'img_style': 'width:35mm;height:35mm;image-rendering: pixelated;-webkit-print-color-adjust: exact;'
                   }"/>
           </div>
-          -->
-
+          
         </div>
       </t>
     </t>
