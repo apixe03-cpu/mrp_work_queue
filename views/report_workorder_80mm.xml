@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
 
+  <!-- Paperformat térmico 80 mm -->
   <record id="paperformat_workorder_80mm" model="report.paperformat">
     <field name="name">WO 80mm</field>
     <field name="format">custom</field>
@@ -11,16 +12,16 @@
     <field name="margin_bottom">2</field>
     <field name="margin_left">2</field>
     <field name="margin_right">2</field>
-    <field name="dpi">203</field> <!-- térmica habitual -->
+    <field name="dpi">203</field>
   </record>
 
+  <!-- Reporte 80mm con QR -->
   <template id="report_workorder_80mm">
     <t t-call="web.html_container">
-      <!-- assets de PDF para fuentes completas -->
+      <!-- assets PDF para fuentes correctas -->
       <t t-call-assets="web.report_assets_pdf" t-js="false"/>
       <t t-foreach="docs" t-as="o">
-        <div class="page"
-             style="width:72mm; padding:3mm; font-size:11pt; font-family:'DejaVu Sans',sans-serif;">
+        <div class="page" style="width:72mm; padding:3mm; font-size:11pt; font-family:'DejaVu Sans',sans-serif;">
 
           <h2 style="text-align:center; font-size:14pt; line-height:1.1; margin:0 0 2mm 0;">
             <t t-esc="o.name"/>
@@ -61,13 +62,9 @@
             </div>
           </t>
 
-          <!-- QR: URL relativa al formulario de la OT -->
-          <t t-set="qrval">
-            <t t-esc="('/web#id=%s&amp;model=mrp.workorder&amp;view_type=form' % o.id)"/>
-          </t>
-
+          <!-- QR con URL ya encodificada desde el modelo -->
           <div style="text-align:center; margin-top:6mm;">
-            <img t-att-src="'/report/barcode/?type=QR&amp;value=%s&amp;width=512&amp;height=512' % qrval"
+            <img t-att-src="'/report/barcode/?type=QR&amp;value=%s&amp;width=512&amp;height=512' % (o.qr_url_value or '')"
                  style="width:36mm;height:36mm; image-rendering: pixelated; -webkit-print-color-adjust: exact;"/>
           </div>
 
