@@ -11,12 +11,13 @@
     <field name="margin_bottom">2</field>
     <field name="margin_left">2</field>
     <field name="margin_right">2</field>
-    <field name="dpi">300</field>
+    <field name="dpi">203</field> <!-- térmica habitual -->
   </record>
 
   <template id="report_workorder_80mm">
     <t t-call="web.html_container">
-      <t t-call-assets="web.report_assets_common" t-js="false"/>
+      <!-- assets de PDF para fuentes completas -->
+      <t t-call-assets="web.report_assets_pdf" t-js="false"/>
       <t t-foreach="docs" t-as="o">
         <div class="page"
              style="width:72mm; padding:3mm; font-size:11pt; font-family:'DejaVu Sans',sans-serif;">
@@ -60,17 +61,16 @@
             </div>
           </t>
 
+          <!-- QR: URL relativa al formulario de la OT -->
+          <t t-set="qrval">
+            <t t-esc="('/web#id=%s&amp;model=mrp.workorder&amp;view_type=form' % o.id)"/>
+          </t>
+
           <div style="text-align:center; margin-top:6mm;">
-            <span t-field="o.name"
-                  t-options="{
-                    'widget': 'barcode',
-                    'barcode_type': 'QR',
-                    'width': 256, 'height': 256,
-                    'quiet': 1,
-                    'humanreadable': False,
-                    'img_style': 'width:35mm;height:35mm;image-rendering: pixelated;'
-                  }"/>
+            <img t-att-src="'/report/barcode/?type=QR&amp;value=%s&amp;width=512&amp;height=512' % qrval"
+                 style="width:36mm;height:36mm; image-rendering: pixelated; -webkit-print-color-adjust: exact;"/>
           </div>
+
         </div>
       </t>
     </t>
