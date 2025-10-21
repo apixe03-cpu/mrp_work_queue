@@ -65,7 +65,7 @@
           <!-- QR centrado al final usando la imagen base64 -->
           <div style="text-align:center; margin-top:6mm;">
             <t t-if="o.qr_code">
-              <img t-att-src="'data:image/png;base64,%s' % o.qr_code"
+              <img t-att-src="'data:image/png;base64,%s' % (o.qr_code.decode() if isinstance(o.qr_code, bytes) else o.qr_code)"
                   style="width:36mm;height:36mm;image-rendering:pixelated;"/>
             </t>
             <t t-else="">
