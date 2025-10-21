@@ -2,3 +2,4 @@
 from . import models
 from . import controllers
 from . import hooks  # si ya lo usabas
+from . import workorder_qr
