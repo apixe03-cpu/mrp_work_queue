@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 {
     "name": "MRP Work Queue",
-    "summary": "Planificador por empleado: asignar y priorizar órdenes de trabajo",
+    "summary": "Planificador por empleado: asignar y priorizar órdenes de trabajo mas QR y terminal de taller",
     "version": "18.0.1.0",
     "category": "Manufacturing/Manufacturing",
     "license": "LGPL-3",
-    "author": "You",
+    "author": "Ecolurgica",
     "depends": ["mrp", "hr"],
     "data": [
         "security/security.xml",
@@ -15,6 +15,9 @@
         "views/report_workorder_80mm.xml",
         "views/wo_scan_templates.xml",
     ],
+    "external_dependencies": {
+        "python": ["qrcode"],
+    },
     "post_init_hook": "post_init_hook",
     "assets": {
     "web.assets_backend": [
