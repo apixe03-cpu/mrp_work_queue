@@ -1,42 +1,28 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-
-  <template id="wo_scan_template" name="WO Scan Form">
+  <template id="wo_scan_form" name="WO – Terminar desde QR">
     <t t-call="web.layout">
-      <div class="container" style="max-width:480px;padding:24px;">
-        <h3>Cerrar OT</h3>
-        <p>
-          <b><t t-esc="wo.name"/></b><br/>
-          <small><t t-esc="wo.production_id.name or ''"/></small>
-        </p>
-
-        <form action="/wo/scan/submit" method="post">
-          <input type="hidden" name="token" t-att-value="wo.qr_token"/>
-
-          <div class="form-group" style="margin-bottom:12px;">
-            <label>Cantidad buena</label>
-            <input class="form-control" type="number" step="0.01" min="0" name="qty_done" value="0"/>
+      <div class="container" style="max-width:720px;">
+        <h2>Orden de trabajo: <t t-esc="wo.name"/></h2>
+        <div style="margin-bottom:10px; color:#666;">
+          Producto: <t t-esc="wo.product_id.display_name"/>
+        </div>
+        <form t-att-action="'/wo/%s/submit' % wo.id" method="post" style="font-size:18px;">
+          <div style="display:flex; gap:16px; margin:12px 0;">
+            <label style="min-width:220px;">Piezas OK</label>
+            <input type="number" name="qty_good" step="0.01" min="0" value="0" style="flex:1; font-size:18px; padding:8px;"/>
           </div>
-
-          <div class="form-group" style="margin-bottom:12px;">
-            <label>Cantidad con scrap</label>
-            <input class="form-control" type="number" step="0.01" min="0" name="qty_scrap" value="0"/>
+          <div style="display:flex; gap:16px; margin:12px 0;">
+            <label style="min-width:220px;">Piezas rechazadas</label>
+            <input type="number" name="qty_scrap" step="0.01" min="0" value="0" style="flex:1; font-size:18px; padding:8px;"/>
           </div>
-
-          <button class="btn btn-primary" type="submit">Finalizar y imprimir siguiente</button>
+          <div style="margin-top:18px;">
+            <button type="submit" class="btn btn-primary" style="font-size:18px; padding:10px 16px;">
+              Finalizar orden
+            </button>
+          </div>
         </form>
       </div>
     </t>
   </template>
-
-  <template id="wo_scan_done" name="WO Scan Done">
-    <t t-call="web.layout">
-      <div class="container" style="max-width:480px;padding:24px;text-align:center;">
-        <h3>¡Listo!</h3>
-        <p>La orden <b><t t-esc="wo.name"/></b> fue finalizada.</p>
-        <p>Se envió a imprimir la siguiente en la cola.</p>
-      </div>
-    </t>
-  </template>
-
 </odoo>

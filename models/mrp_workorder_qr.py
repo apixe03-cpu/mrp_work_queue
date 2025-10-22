@@ -19,7 +19,7 @@ class MrpWorkorder(models.Model):
 
     def _qr_payload(self):
         base = self.env["ir.config_parameter"].sudo().get_param("web.base.url") or ""
-        return f"{base}/web#id={self.id}&model=mrp.workorder&view_type=form"
+        return f"{base}/wo/{self.id}"
 
     def _compute_qr_text(self):
         for wo in self:
@@ -45,3 +45,37 @@ class MrpWorkorder(models.Model):
             buf = io.BytesIO()
             img.save(buf, format="PNG")
             wo.qr_code = base64.b64encode(buf.getvalue())
+    
+    def action_finish_from_qr(self):
+        """Registra scrap (si corresponde) y finaliza la WO.
+           Estrategia:
+           - Si qty_scrap > 0: creamos stock.scrap ligado a la MO.
+           - Si qty_good > 0: dejamos que Odoo consuma y termine la WO.
+        """
+        self.ensure_one()
+        qty_good = float(self.env.context.get('qty_good') or 0.0)
+        qty_scrap = float(self.env.context.get('qty_scrap') or 0.0)
+
+        # 1) Scrap (descartar sin sumar a producto terminado)
+        if qty_scrap > 0:
+            Scrap = self.env['stock.scrap'].sudo()
+            # Tomamos el producto de salida de la MO (no siempre coincide con self.product_id cuando hay varias ops).
+            finished_prod = self.production_id.product_id
+            Scrap.create({
+                'product_id': finished_prod.id,
+                'scrap_qty': qty_scrap,
+                'uom_id': finished_prod.uom_id.id,
+                'company_id': self.company_id.id,
+                'production_id': self.production_id.id,
+                'location_id': self.production_id.location_src_id.id,
+            }).action_validate()
+
+        # 2) Finalizar la WO (Odoo se encarga del consumo; si hay múltiples operaciones, respeta la secuencia)
+        #    Si querés forzar qty_good a moverse como producido parcial, podés usar el asistente de producción.
+        #    Como simplificación, si qty_good == 0, igualmente se cierra la WO (p.ej. operación de control).
+        self.button_finish()
+
+        # 3) Si querés producir parcialmente qty_good a nivel MO en vez de solo terminar la WO:
+        #    descomentar esta parte en instalaciones donde haga falta:
+        # if qty_good > 0:
+        #     self.production_id._record_production(qty_good)  # método existe según versión; si no, usamos wizard
