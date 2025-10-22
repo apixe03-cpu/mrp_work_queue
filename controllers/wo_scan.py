@@ -1,35 +1,110 @@
 # -*- coding: utf-8 -*-
-from odoo import http
+from odoo import http, _
 from odoo.http import request
+from werkzeug.exceptions import NotFound
+import logging
 
-class WOScan(http.Controller):
+_logger = logging.getLogger(__name__)
 
-    @http.route('/wo/<int:wo_id>', type='http', auth='user', website=True)
+def _to_float(s):
+    if s is None:
+        return 0.0
+    # soporta "1,5" o "1.5"
+    s = str(s).strip().replace(',', '.')
+    try:
+        return float(s)
+    except Exception:
+        return 0.0
+
+class WoScanController(http.Controller):
+
+    @http.route('/wo/<int:wo_id>', type='http', auth='user', methods=['GET'], csrf=False)
     def wo_form(self, wo_id, **kw):
         wo = request.env['mrp.workorder'].sudo().browse(wo_id)
         if not wo.exists():
-            return request.not_found()
-        return request.render('mrp_work_queue.wo_scan_form', {
+            raise NotFound()
+        values = {
             'wo': wo,
-        })
+            'product': wo.product_id,
+            'title': _("Orden de trabajo: %s") % (wo.name,),
+            'ok_default': "",
+            'rej_default': "0",
+        }
+        return request.render('mrp_work_queue.wo_finish_form', values)
 
-    @http.route('/wo/<int:wo_id>/submit', type='http', auth='user', methods=['POST'], csrf=False)
-    def wo_submit(self, wo_id, **post):
-        wo = request.env['mrp.workorder'].sudo().browse(wo_id)
+    @http.route('/wo/<int:wo_id>/finish', type='http', auth='user', methods=['POST'], csrf=False)
+    def wo_finish(self, wo_id, **post):
+        env = request.env
+        wo = env['mrp.workorder'].sudo().browse(wo_id)
         if not wo.exists():
-            return request.not_found()
+            return request.render('mrp_work_queue.wo_finish_result', {
+                'ok': False,
+                'message': _("La orden no existe.")
+            })
 
-        def _f(k):
-            try:
-                return float(post.get(k) or 0)
-            except Exception:
-                return 0.0
+        ok_qty  = _to_float(post.get('ok_qty'))
+        rej_qty = _to_float(post.get('rej_qty'))
+        if ok_qty < 0: ok_qty = 0.0
+        if rej_qty < 0: rej_qty = 0.0
 
-        qty_good = _f('qty_good')
-        qty_scrap = _f('qty_scrap')
+        try:
+            # 1) Asegurar estado
+            if wo.state not in ('progress', 'done'):
+                # algunas versiones usan button_start, otras action_start
+                if hasattr(wo, 'button_start'):
+                    wo.button_start()
+                elif hasattr(wo, 'action_start'):
+                    wo.action_start()
 
-        # Método robusto en el modelo (abajo) que registra scrap y finaliza
-        wo.sudo().with_context(qty_good=qty_good, qty_scrap=qty_scrap).action_finish_from_qr()
+            # 2) Producir solo las OK
+            if ok_qty > 0:
+                # rutas distintas según versión de Odoo:
+                # a) método nuevo
+                if hasattr(wo, 'record_production'):
+                    wo.qty_producing = ok_qty
+                    wo.record_production()
+                # b) alternativa finish con qty_producing
+                elif hasattr(wo, 'button_finish'):
+                    wo.qty_producing = ok_qty
+                    wo.button_finish()
+                else:
+                    # c) fallback por producción
+                    prod = wo.production_id
+                    # algunos requieren asignar cantidad a move_finished_ids
+                    for mv in prod.move_finished_ids.filtered(lambda m: m.state not in ('done','cancel')):
+                        mv.quantity_done += ok_qty
+                    if hasattr(prod, 'button_mark_done'):
+                        prod.button_mark_done()
 
-        # Redirigimos al form estándar por si quieren mirar el resultado
-        return request.redirect('/web#id=%s&model=mrp.workorder&view_type=form' % wo_id)
+            # 3) Scrapeo de rechazadas
+            if rej_qty > 0:
+                scrap_vals = {
+                    'product_id': wo.product_id.id,
+                    'scrap_qty': rej_qty,
+                    'company_id': wo.company_id.id,
+                    'origin': 'WO %s' % wo.name,
+                    'location_id': wo.production_id.location_src_id.id,   # desde el taller
+                    'location_dest_id': env.ref('stock.stock_location_scrapped').id,
+                    'production_id': wo.production_id.id,
+                }
+                scrap = env['stock.scrap'].create(scrap_vals)
+                scrap.action_validate()
+
+            # 4) Cerrar la OT si sigue abierta
+            if wo.state != 'done':
+                if hasattr(wo, 'button_finish'):
+                    wo.button_finish()
+                elif hasattr(wo, 'action_done'):
+                    wo.action_done()
+
+            return request.render('mrp_work_queue.wo_finish_result', {
+                'ok': True,
+                'message': _("Orden finalizada. OK: %(ok).2f, Rechazo: %(rej).2f", {'ok': ok_qty, 'rej': rej_qty})
+            })
+
+        except Exception as e:
+            _logger.exception("Error finalizando WO %s", wo.name)
+            return request.render('mrp_work_queue.wo_finish_result', {
+                'ok': False,
+                'message': _("Error al finalizar: %s") % (str(e),)
+            })
