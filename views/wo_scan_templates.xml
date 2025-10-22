@@ -1,24 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <odoo>
+  <!-- Formulario simple de cierre de OT -->
   <template id="wo_finish_form">
     <t t-call="web.layout">
       <div class="container" style="max-width:720px;padding:16px">
         <h3><t t-esc="title"/></h3>
         <p><b>Producto:</b> <t t-esc="product.display_name"/></p>
+
         <form t-att-action="'/wo/%d/finish' % wo.id" method="post" style="margin-top:12px">
           <div style="margin:8px 0;">
             <label>Piezas OK</label>
-            <input type="text" name="ok_qty" t-att-value="ok_default" style="width:100%;padding:8px;font-size:18px;">
+            <input type="text" name="ok_qty" t-att-value="ok_default"
+                   style="width:100%;padding:8px;font-size:18px"/>
           </div>
+
           <div style="margin:8px 0;">
             <label>Piezas rechazadas</label>
-            <input type="text" name="rej_qty" t-att-value="rej_default" style="width:100%;padding:8px;font-size:18px;">
+            <input type="text" name="rej_qty" t-att-value="rej_default"
+                   style="width:100%;padding:8px;font-size:18px"/>
           </div>
-          <button type="submit" style="padding:10px 16px;font-size:18px;">Finalizar orden</button>
+
+          <button type="submit" style="padding:10px 16px;font-size:18px">Finalizar orden</button>
         </form>
       </div>
     </t>
   </template>
 
+  <!-- Resultado del cierre -->
   <template id="wo_finish_result">
     <t t-call="web.layout">
       <div class="container" style="max-width:720px;padding:16px">
