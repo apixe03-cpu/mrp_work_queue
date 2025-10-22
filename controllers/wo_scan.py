@@ -9,7 +9,6 @@ _logger = logging.getLogger(__name__)
 def _to_float(s):
     if s is None:
         return 0.0
-    # soporta "1,5" o "1.5"
     s = str(s).strip().replace(',', '.')
     try:
         return float(s)
@@ -50,7 +49,6 @@ class WoScanController(http.Controller):
         try:
             # 1) Asegurar estado
             if wo.state not in ('progress', 'done'):
-                # algunas versiones usan button_start, otras action_start
                 if hasattr(wo, 'button_start'):
                     wo.button_start()
                 elif hasattr(wo, 'action_start'):
@@ -58,19 +56,14 @@ class WoScanController(http.Controller):
 
             # 2) Producir solo las OK
             if ok_qty > 0:
-                # rutas distintas según versión de Odoo:
-                # a) método nuevo
                 if hasattr(wo, 'record_production'):
                     wo.qty_producing = ok_qty
                     wo.record_production()
-                # b) alternativa finish con qty_producing
                 elif hasattr(wo, 'button_finish'):
                     wo.qty_producing = ok_qty
                     wo.button_finish()
                 else:
-                    # c) fallback por producción
                     prod = wo.production_id
-                    # algunos requieren asignar cantidad a move_finished_ids
                     for mv in prod.move_finished_ids.filtered(lambda m: m.state not in ('done','cancel')):
                         mv.quantity_done += ok_qty
                     if hasattr(prod, 'button_mark_done'):
@@ -83,7 +76,7 @@ class WoScanController(http.Controller):
                     'scrap_qty': rej_qty,
                     'company_id': wo.company_id.id,
                     'origin': 'WO %s' % wo.name,
-                    'location_id': wo.production_id.location_src_id.id,   # desde el taller
+                    'location_id': wo.production_id.location_src_id.id,
                     'location_dest_id': env.ref('stock.stock_location_scrapped').id,
                     'production_id': wo.production_id.id,
                 }
@@ -97,9 +90,13 @@ class WoScanController(http.Controller):
                 elif hasattr(wo, 'action_done'):
                     wo.action_done()
 
+            # ⚠️ AQUÍ estaba el problema de "format requires a mapping"
+            msg_tpl = _("Orden finalizada. OK: %(ok).2f, Rechazo: %(rej).2f")
+            msg = msg_tpl % {'ok': ok_qty, 'rej': rej_qty}
+
             return request.render('mrp_work_queue.wo_finish_result', {
                 'ok': True,
-                'message': _("Orden finalizada. OK: %(ok).2f, Rechazo: %(rej).2f", {'ok': ok_qty, 'rej': rej_qty})
+                'message': msg,
             })
 
         except Exception as e:
