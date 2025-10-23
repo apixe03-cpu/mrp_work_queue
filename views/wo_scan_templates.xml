@@ -3,25 +3,40 @@
   <!-- Formulario simple de cierre de OT -->
   <template id="wo_finish_form">
     <t t-call="web.layout">
-      <div class="container" style="max-width:720px;padding:16px">
+      <div class="oe_structure"/>
+      <div class="container mt-3 mb-5">
+
         <h3><t t-esc="title"/></h3>
         <p><b>Producto:</b> <t t-esc="product.display_name"/></p>
 
-        <form t-att-action="'/wo/%d/finish' % wo.id" method="post" style="margin-top:12px">
-          <div style="margin:8px 0;">
-            <label>Piezas OK</label>
-            <input type="text" name="ok_qty" t-att-value="ok_default"
-                   style="width:100%;padding:8px;font-size:18px"/>
+        <!-- Si la OT ya está hecha, solo mostramos info -->
+        <t t-if="already_done">
+          <div class="alert alert-info" role="alert" style="max-width:520px">
+            <p><b>Estado:</b> Terminada</p>
+            <p><b>MO:</b> <t t-esc="mo_name"/></p>
+            <p><b>Responsable:</b> <t t-esc="responsable_name"/></p>
+            <p><b>Producido:</b> <t t-esc="produced_total"/></p>
+            <p><b>Scrap:</b> <t t-esc="scrap_total"/></p>
+            <p><b>Fecha/hora de cierre:</b> <t t-esc="close_dt"/></p>
           </div>
+          <p>Esta orden ya fue finalizada. No se puede volver a cargar.</p>
+        </t>
 
-          <div style="margin:8px 0;">
-            <label>Piezas rechazadas</label>
-            <input type="text" name="rej_qty" t-att-value="rej_default"
-                   style="width:100%;padding:8px;font-size:18px"/>
-          </div>
+        <!-- Si NO está hecha, mostramos el form -->
+        <t t-if="not already_done">
+          <form t-att-action="'/wo/%s/finish' % wo.id" method="post" style="max-width:520px">
+            <div class="mb-3">
+              <label class="form-label">Piezas OK</label>
+              <input type="number" name="ok_qty" class="form-control" t-att-value="ok_default" step="0.01" min="0"/>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Piezas rechazadas</label>
+              <input type="number" name="rej_qty" class="form-control" t-att-value="rej_default" step="0.01" min="0"/>
+            </div>
+            <button type="submit" class="btn btn-primary">Finalizar orden</button>
+          </form>
+        </t>
 
-          <button type="submit" style="padding:10px 16px;font-size:18px">Finalizar orden</button>
-        </form>
       </div>
     </t>
   </template>
