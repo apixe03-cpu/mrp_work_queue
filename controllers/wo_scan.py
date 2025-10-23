@@ -22,14 +22,36 @@ def _fmt_dt(dt):
     return dt.strftime('%Y-%m-%d %H:%M:%S') if dt else '-'
 
 
+def _ml_qty_done(ml):
+    """Cantidad hecha en una stock.move.line, robusto a nombres distintos."""
+    for fname in ('qty_done', 'quantity_done'):
+        v = getattr(ml, fname, None)
+        if v is not None:
+            return v or 0.0
+    # última red de seguridad (no siempre representa 'done', pero evita reventar)
+    return float(getattr(ml, 'product_uom_qty', 0.0) or 0.0)
+
+
 def _qty_done(move):
-    """Cantidad hecha para un stock.move, compatible con distintas versiones."""
-    # Algunas versiones tienen quantity_done en el move
+    """
+    Cantidad hecha para un stock.move, compatible con varias versiones:
+    - Usa move.quantity_done si existe
+    - Si no, suma qty_done/quantity_done de las move lines
+    - Si no hay lines, usa move.quantity (en 'done') o product_uom_qty como fallback
+    """
     q = getattr(move, 'quantity_done', None)
     if q is not None:
         return q or 0.0
-    # Fallback genérico: sumar las move lines
-    return sum(ml.qty_done or 0.0 for ml in move.move_line_ids)
+
+    # Si hay líneas, sumamos lo hecho en cada una
+    if getattr(move, 'move_line_ids', False):
+        return sum(_ml_qty_done(ml) for ml in move.move_line_ids)
+
+    # Fallbacks finales (según estado del move)
+    if getattr(move, 'state', None) == 'done':
+        return float(getattr(move, 'quantity', 0.0) or 0.0)
+
+    return float(getattr(move, 'product_uom_qty', 0.0) or 0.0)
 
 
 class WoScanController(http.Controller):
