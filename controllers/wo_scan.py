@@ -136,12 +136,6 @@ class WoScanController(http.Controller):
                 elif hasattr(wo, 'button_finish'):
                     wo.qty_producing = total_qty
                     wo.button_finish()
-                else:
-                    prod = wo.production_id
-                    for mv in prod.move_finished_ids.filtered(lambda m: m.state not in ('done', 'cancel')):
-                        mv.quantity_done += total_qty
-                    if hasattr(prod, 'button_mark_done'):
-                        prod.button_mark_done()
 
             # 3) SCRAP de rechazadas (validado)
             if rej_qty > 0:
