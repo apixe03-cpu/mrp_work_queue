@@ -45,39 +45,50 @@ class WoScanController(http.Controller):
         rej_qty = _to_float(post.get('rej_qty'))
         if ok_qty < 0: ok_qty = 0.0
         if rej_qty < 0: rej_qty = 0.0
+        total_qty = ok_qty + rej_qty
 
         try:
-            # 1) Asegurar estado
+            # 1) Asegurar estado en progreso
             if wo.state not in ('progress', 'done'):
                 if hasattr(wo, 'button_start'):
                     wo.button_start()
                 elif hasattr(wo, 'action_start'):
                     wo.action_start()
 
-            # 2) Producir solo las OK
-            if ok_qty > 0:
+            # 2) Producir TODO lo procesado (OK + rechazadas)
+            if total_qty > 0:
                 if hasattr(wo, 'record_production'):
-                    wo.qty_producing = ok_qty
+                    wo.qty_producing = total_qty
                     wo.record_production()
                 elif hasattr(wo, 'button_finish'):
-                    wo.qty_producing = ok_qty
+                    wo.qty_producing = total_qty
                     wo.button_finish()
                 else:
                     prod = wo.production_id
-                    for mv in prod.move_finished_ids.filtered(lambda m: m.state not in ('done','cancel')):
-                        mv.quantity_done += ok_qty
+                    for mv in prod.move_finished_ids.filtered(lambda m: m.state not in ('done', 'cancel')):
+                        mv.quantity_done += total_qty
                     if hasattr(prod, 'button_mark_done'):
                         prod.button_mark_done()
 
-            # 3) Scrapeo de rechazadas
+            # 3) Mover las rechazadas a SCRAP (del producto terminado)
             if rej_qty > 0:
+                # localizar depósito de scrap de forma segura
+                scrap_loc = env.ref('stock.stock_location_scrapped', raise_if_not_found=False) \
+                            or env.ref('stock.location_scrapped', raise_if_not_found=False)
+                if not scrap_loc:
+                    scrap_loc = env['stock.location'].search([('scrap_location', '=', True)], limit=1)
+
+                # desde dónde sale el producto terminado
+                src_loc = wo.production_id.location_dest_id or env.ref('stock.stock_location_stock')
+
                 scrap_vals = {
                     'product_id': wo.product_id.id,
+                    'product_uom_id': wo.product_uom_id.id,
                     'scrap_qty': rej_qty,
                     'company_id': wo.company_id.id,
                     'origin': 'WO %s' % wo.name,
-                    'location_id': wo.production_id.location_src_id.id,
-                    'location_dest_id': env.ref('stock.stock_location_scrapped').id,
+                    'location_id': src_loc.id,
+                    'location_dest_id': scrap_loc.id if scrap_loc else src_loc.id,
                     'production_id': wo.production_id.id,
                 }
                 scrap = env['stock.scrap'].create(scrap_vals)
@@ -90,14 +101,9 @@ class WoScanController(http.Controller):
                 elif hasattr(wo, 'action_done'):
                     wo.action_done()
 
-            # ⚠️ AQUÍ estaba el problema de "format requires a mapping"
-            msg_tpl = _("Orden finalizada. OK: %(ok).2f, Rechazo: %(rej).2f")
-            msg = msg_tpl % {'ok': ok_qty, 'rej': rej_qty}
-
-            return request.render('mrp_work_queue.wo_finish_result', {
-                'ok': True,
-                'message': msg,
-            })
+            # Mensaje formateado correctamente (mapping)
+            msg = _("Orden finalizada. OK: %(ok).2f, Rechazo: %(rej).2f") % {'ok': ok_qty, 'rej': rej_qty}
+            return request.render('mrp_work_queue.wo_finish_result', {'ok': True, 'message': msg})
 
         except Exception as e:
             _logger.exception("Error finalizando WO %s", wo.name)
