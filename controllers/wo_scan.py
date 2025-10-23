@@ -70,29 +70,39 @@ class WoScanController(http.Controller):
                     if hasattr(prod, 'button_mark_done'):
                         prod.button_mark_done()
 
-            # 3) Mover las rechazadas a SCRAP (del producto terminado)
+            # ---------- 3) SCRAP de rechazadas ----------
             if rej_qty > 0:
-                # localizar depósito de scrap de forma segura
+                Scrap = env['stock.scrap'].sudo()
+
+                # detectar nombre del campo destino: 'scrap_location_id' o 'location_dest_id'
+                dest_field = 'scrap_location_id' if 'scrap_location_id' in Scrap._fields else (
+                            'location_dest_id' if 'location_dest_id' in Scrap._fields else None)
+
+                # localizar depósito de scrap
                 scrap_loc = env.ref('stock.stock_location_scrapped', raise_if_not_found=False) \
                             or env.ref('stock.location_scrapped', raise_if_not_found=False)
                 if not scrap_loc:
-                    scrap_loc = env['stock.location'].search([('scrap_location', '=', True)], limit=1)
+                    scrap_loc = env['stock.location'].sudo().search([('scrap_location', '=', True)], limit=1)
 
-                # desde dónde sale el producto terminado
-                src_loc = wo.production_id.location_dest_id or env.ref('stock.stock_location_stock')
+                if not dest_field or not scrap_loc:
+                    # si la base no tiene campo destino o no existe loc de scrap, no rompemos
+                    _logger.warning("No se encontró campo destino de scrap o ubicación de scrap; se omite el scrap.")
+                else:
+                    # desde dónde sale el terminado
+                    src_loc = wo.production_id.location_dest_id or env.ref('stock.stock_location_stock')
 
-                scrap_vals = {
-                    'product_id': wo.product_id.id,
-                    'product_uom_id': wo.product_uom_id.id,
-                    'scrap_qty': rej_qty,
-                    'company_id': wo.company_id.id,
-                    'origin': 'WO %s' % wo.name,
-                    'location_id': src_loc.id,
-                    'location_dest_id': scrap_loc.id if scrap_loc else src_loc.id,
-                    'production_id': wo.production_id.id,
-                }
-                scrap = env['stock.scrap'].create(scrap_vals)
-                scrap.action_validate()
+                    vals = {
+                        'product_id': wo.product_id.id,
+                        'product_uom_id': wo.product_uom_id.id,
+                        'scrap_qty': rej_qty,
+                        'company_id': wo.company_id.id,
+                        'origin': 'WO %s' % wo.name,
+                        'location_id': src_loc.id,
+                        dest_field: scrap_loc.id,         # <- destino dinámico
+                        'production_id': wo.production_id.id,
+                    }
+                    scrap = Scrap.create(vals)
+                    scrap.action_validate()
 
             # 4) Cerrar la OT si sigue abierta
             if wo.state != 'done':
