@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-from odoo import http, _
+import logging
+from odoo import http, _, fields as odoo_fields
 from odoo.http import request
 from werkzeug.exceptions import NotFound
-from datetime import datetime
-import logging
 
 _logger = logging.getLogger(__name__)
 
@@ -19,75 +18,33 @@ def _to_float(s):
 
 
 def _fmt_dt(dt):
-    return dt.strftime('%Y-%m-%d %H:%M:%S') if dt else '-'
-
-
-def _ml_qty_done(ml):
-    """Cantidad hecha en una stock.move.line, robusto a nombres distintos."""
-    for fname in ('qty_done', 'quantity_done'):
-        v = getattr(ml, fname, None)
-        if v is not None:
-            return v or 0.0
-    # última red de seguridad (no siempre representa 'done', pero evita reventar)
-    return float(getattr(ml, 'product_uom_qty', 0.0) or 0.0)
-
-
-def _qty_done(move):
-    """
-    Cantidad hecha para un stock.move, compatible con varias versiones:
-    - Usa move.quantity_done si existe
-    - Si no, suma qty_done/quantity_done de las move lines
-    - Si no hay lines, usa move.quantity (en 'done') o product_uom_qty como fallback
-    """
-    q = getattr(move, 'quantity_done', None)
-    if q is not None:
-        return q or 0.0
-
-    # Si hay líneas, sumamos lo hecho en cada una
-    if getattr(move, 'move_line_ids', False):
-        return sum(_ml_qty_done(ml) for ml in move.move_line_ids)
-
-    # Fallbacks finales (según estado del move)
-    if getattr(move, 'state', None) == 'done':
-        return float(getattr(move, 'quantity', 0.0) or 0.0)
-
-    return float(getattr(move, 'product_uom_qty', 0.0) or 0.0)
+    """Formatea con TZ del usuario."""
+    if not dt:
+        return "-"
+    try:
+        dt_loc = odoo_fields.Datetime.context_timestamp(request.env.user, dt)
+        return dt_loc.strftime("%Y-%m-%d %H:%M:%S")
+    except Exception:
+        return str(dt)
 
 
 class WoScanController(http.Controller):
-
-    # ---------- utilitarios de lectura ----------
-    def _get_wo_close_dt(self, wo):
-        if wo and hasattr(wo, 'time_ids') and wo.time_ids:
+    # ---------- helpers de lectura ----------
+    def _wo_close_dt(self, wo):
+        # último registro de tiempo, si existe; si no, la MO
+        if getattr(wo, 'time_ids', False) and wo.time_ids:
             last = wo.time_ids.sorted(lambda t: t.date_end or t.date_start)[-1]
             return last.date_end or last.date_start
         return getattr(wo.production_id, 'date_finished', False)
 
-    def _get_responsable(self, wo):
-        if wo and hasattr(wo, 'time_ids') and wo.time_ids:
+    def _responsable(self, wo):
+        if getattr(wo, 'time_ids', False) and wo.time_ids:
             last = wo.time_ids.sorted(lambda t: t.date_end or t.date_start)[-1]
             if last.user_id:
                 return last.user_id.name
         if getattr(wo.production_id, 'user_id', False):
             return wo.production_id.user_id.name
         return '-'
-
-    def _get_already_done_numbers(self, wo):
-        produced = 0.0
-        prod = wo.production_id
-        for mv in prod.move_finished_ids.filtered(lambda m: m.state == 'done'):
-            # quantity a veces guarda lo movido (en done)
-            produced += getattr(mv, 'quantity', 0.0) or _qty_done(mv)
-        scrap_done = 0.0
-        Scrap = request.env['stock.scrap'].sudo()
-        domain = [('product_id', '=', wo.product_id.id), ('state', '=', 'done')]
-        if 'production_id' in Scrap._fields and prod:
-            domain.append(('production_id', '=', prod.id))
-        else:
-            domain.append(('origin', 'ilike', prod.name if prod else 'MO '))
-        for sc in Scrap.search(domain):
-            scrap_done += sc.scrap_qty
-        return produced, scrap_done
 
     # ---------- vistas ----------
     @http.route('/wo/<int:wo_id>', type='http', auth='user', methods=['GET'], csrf=False)
@@ -96,9 +53,23 @@ class WoScanController(http.Controller):
         if not wo.exists():
             raise NotFound()
 
-        already_done = (wo.state == 'done')
-        produced, scrapped = self._get_already_done_numbers(wo) if already_done else (0.0, 0.0)
-        close_dt = self._get_wo_close_dt(wo) if already_done else False
+        if wo.state == 'done':
+            msg = _(
+                "Orden de trabajo: %(wo)s\n\n"
+                "Producto: %(prod)s\n"
+                "MO: %(mo)s\n"
+                "Responsable: %(user)s\n"
+                "Estado: Terminada\n"
+                "Fecha/hora de cierre: %(dt)s\n\n"
+                "Esta orden ya fue finalizada. No se puede volver a cargar."
+            ) % {
+                'wo': wo.name,
+                'prod': wo.product_id.display_name,
+                'mo': wo.production_id.name,
+                'user': self._responsable(wo),
+                'dt': _fmt_dt(self._wo_close_dt(wo)),
+            }
+            return request.render('mrp_work_queue.wo_finish_result', {'ok': False, 'message': msg})
 
         values = {
             'wo': wo,
@@ -106,12 +77,6 @@ class WoScanController(http.Controller):
             'title': _("Orden de trabajo: %s") % (wo.name,),
             'ok_default': "",
             'rej_default': "0",
-            'already_done': already_done,
-            'mo_name': wo.production_id.name,
-            'responsable_name': self._get_responsable(wo),
-            'produced_total': produced,
-            'scrap_total': scrapped,
-            'close_dt': _fmt_dt(close_dt) if close_dt else '-',
         }
         return request.render('mrp_work_queue.wo_finish_form', values)
 
@@ -121,15 +86,12 @@ class WoScanController(http.Controller):
         wo = env['mrp.workorder'].sudo().browse(wo_id)
         if not wo.exists():
             return request.render('mrp_work_queue.wo_finish_result', {
-                'ok': False,
-                'message': _("La orden no existe.")
+                'ok': False, 'message': _("La orden no existe.")
             })
 
+        # Bloqueo si ya está done
         if wo.state == 'done':
-            produced, scrapped = self._get_already_done_numbers(wo)
-            msg = _("Esta orden ya estaba finalizada. Producido: %(ok).2f, Scrap: %(rej).2f") % {
-                'ok': produced, 'rej': scrapped
-            }
+            msg = _("Esta orden ya estaba finalizada. Cierre: %s") % _fmt_dt(self._wo_close_dt(wo))
             return request.render('mrp_work_queue.wo_finish_result', {'ok': True, 'message': msg})
 
         ok_qty  = _to_float(post.get('ok_qty'))
@@ -139,14 +101,14 @@ class WoScanController(http.Controller):
         total_qty = ok_qty + rej_qty
 
         try:
-            # 1) Asegurar estado en progreso
+            # 1) Poner la WO en progreso
             if wo.state not in ('progress', 'done'):
                 if hasattr(wo, 'button_start'):
                     wo.button_start()
                 elif hasattr(wo, 'action_start'):
                     wo.action_start()
 
-            # 2) Producir TODO (OK + rechazadas)
+            # 2) Registrar producción (OK + Rechazo) usando la API oficial
             if total_qty > 0:
                 if hasattr(wo, 'record_production'):
                     wo.qty_producing = total_qty
@@ -154,13 +116,15 @@ class WoScanController(http.Controller):
                 elif hasattr(wo, 'button_finish'):
                     wo.qty_producing = total_qty
                     wo.button_finish()
-                # Sin fallback directo a moves — mantenemos el flujo oficial y robusto
 
-            # 3) SCRAP de rechazadas (desde el terminado)
+            # 3) Scrap de rechazadas (validado en firme)
             if rej_qty > 0:
                 Scrap = env['stock.scrap'].sudo()
+                # campo destino que exista en esta versión
                 dest_field = 'scrap_location_id' if 'scrap_location_id' in Scrap._fields else (
                              'location_dest_id' if 'location_dest_id' in Scrap._fields else None)
+
+                # ubicación de scrap
                 scrap_loc = env.ref('stock.stock_location_scrapped', raise_if_not_found=False) \
                             or env.ref('stock.location_scrapped', raise_if_not_found=False)
                 if not scrap_loc:
@@ -170,7 +134,7 @@ class WoScanController(http.Controller):
                     src_loc = wo.production_id.location_dest_id or env.ref('stock.stock_location_stock').sudo()
                     vals = {
                         'product_id': wo.product_id.id,
-                        'product_uom_id': wo.product_uom_id.id,
+                        'product_uom_id': (wo.product_uom_id.id if wo.product_uom_id else wo.product_id.uom_id.id),
                         'scrap_qty': rej_qty,
                         'company_id': wo.company_id.id,
                         'origin': 'MO %s / WO %s' % (wo.production_id.name, wo.name),
@@ -179,44 +143,49 @@ class WoScanController(http.Controller):
                     if 'production_id' in Scrap._fields:
                         vals['production_id'] = wo.production_id.id
                     vals[dest_field] = scrap_loc.id
+
                     scrap = Scrap.create(vals)
-                    scrap.action_validate()
+                    # validar (algunas versiones usan action_validate, otras action_done)
+                    if hasattr(scrap, 'action_validate'):
+                        scrap.action_validate()
+                    elif hasattr(scrap, 'action_done'):
+                        scrap.action_done()
                 else:
                     _logger.warning("No se pudo determinar ubicación/campo de destino para scrap; se omite.")
 
-            # 4) Cerrar la OT
+            # 4) Cerrar la WO
             if wo.state != 'done':
                 if hasattr(wo, 'button_finish'):
                     wo.button_finish()
                 elif hasattr(wo, 'action_done'):
                     wo.action_done()
 
-            # 5) Intentar cerrar la MO SOLO si no queda nada pendiente
+            # 5) Intentar cerrar la MO sin mirar cantidades: sólo estados.
             mo = wo.production_id
-            if mo and all(w.state == 'done' for w in mo.workorder_ids):
-                raw_pending = any(
-                    mv.state not in ('done', 'cancel') and _qty_done(mv) < (mv.product_uom_qty or 0.0)
-                    for mv in mo.move_raw_ids
-                )
-                finished_pending = any(
-                    mv.state not in ('done', 'cancel') and _qty_done(mv) < (mv.product_uom_qty or 0.0)
-                    for mv in mo.move_finished_ids
-                )
-                if not raw_pending and not finished_pending and hasattr(mo, 'button_mark_done'):
-                    try:
-                        mo.button_mark_done()
-                    except Exception:
-                        _logger.info("No se pudo cerrar la MO %s automáticamente.", mo.name)
+            if mo and mo.state != 'done':
+                all_wos_done = all(w.state == 'done' for w in mo.workorder_ids)
+                # si quedan movimientos en estado distinto a done/cancel, no cerramos
+                raw_pending = any(m.state not in ('done', 'cancel') for m in mo.move_raw_ids)
+                fin_pending = any(m.state not in ('done', 'cancel') for m in mo.move_finished_ids)
+                if all_wos_done and not raw_pending and not fin_pending:
+                    if hasattr(mo, 'button_mark_done'):
+                        try:
+                            mo.button_mark_done()
+                        except Exception:
+                            _logger.info("No se pudo cerrar la MO %s automáticamente.", mo.name)
+                    elif hasattr(mo, 'action_done'):
+                        try:
+                            mo.action_done()
+                        except Exception:
+                            _logger.info("No se pudo cerrar la MO %s automáticamente.", mo.name)
 
-            close_dt = self._get_wo_close_dt(wo)
             msg = _("Orden finalizada. OK: %(ok).2f, Rechazo: %(rej).2f. Cierre: %(dt)s") % {
-                'ok': ok_qty, 'rej': rej_qty, 'dt': _fmt_dt(close_dt)
+                'ok': ok_qty, 'rej': rej_qty, 'dt': _fmt_dt(self._wo_close_dt(wo)),
             }
             return request.render('mrp_work_queue.wo_finish_result', {'ok': True, 'message': msg})
 
         except Exception as e:
             _logger.exception("Error finalizando WO %s", wo.name)
             return request.render('mrp_work_queue.wo_finish_result', {
-                'ok': False,
-                'message': _("Error al finalizar: %s") % (str(e),)
+                'ok': False, 'message': _("Error al finalizar: %s") % (str(e),)
             })
