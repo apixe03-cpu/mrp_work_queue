@@ -172,7 +172,7 @@ class WoScanController(http.Controller):
                     scrap = Scrap.create(vals)
                     # validar en firme
                     scrap.action_validate()
-                    scrap.flush()
+                    # en algunas versiones action_validate ya deja state='done'
                     if getattr(scrap, 'state', 'done') != 'done':
                         _logger.warning("Scrap quedó en estado %s", getattr(scrap, 'state', '?'))
                 else:
