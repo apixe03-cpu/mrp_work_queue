@@ -89,7 +89,7 @@ class WorkQueueItem(models.Model):
         # ID del action de reporte que definiste para el 80mm
         # (lo tienes como "action_report_mrp_workorder_80mm" en tu módulo)
         report_action = self.env.ref(
-            'mrp_work_queue.action_report_mrp_workorder_80mm', raise_if_not_found=False
+            'report_workorder_80mm', raise_if_not_found=False
         )
         if not report_action:
             raise UserError(_("No se encontró el reporte de OT 80mm."))
