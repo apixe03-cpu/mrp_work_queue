@@ -51,7 +51,10 @@
             <h3 class="mrp-wq-title">Operaciones disponibles</h3>
             <field name="backlog_item_ids"
                    nolabel="1"
-                   domain="[('employee_id','=',False), ('workcenter_id','=',workcenter_id)]"
+                   domain="[('employee_id','=',False),
+                            ('workcenter_id','=',workcenter_id),
+                            ('workorder_id.state','!=','done'),
+                            ('workorder_id.state','!=','cancel')]"
                    context="{'active_id': id}"
                    options="{'no_create': True, 'no_create_edit': True, 'no_edit': True}">
               <list create="0" delete="0">
@@ -73,7 +76,10 @@
             <h3 class="mrp-wq-title">Cola del empleado</h3>
             <field name="line_ids"
                    nolabel="1"
-                   domain="[('employee_id','=',employee_id), ('workcenter_id','=',workcenter_id)]"
+                   domain="[('employee_id','=',employee_id),
+                            ('workcenter_id','=',workcenter_id),
+                            ('workorder_id.state','!=','done'),
+                            ('workorder_id.state','!=','cancel')]"
                    context="{'active_id': id}"
                    options="{'no_create': True, 'no_create_edit': True}">
               <list create="0" delete="0" editable="bottom">

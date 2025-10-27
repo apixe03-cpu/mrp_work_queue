@@ -37,7 +37,7 @@ class WorkQueueItem(models.Model):
     )
     state = fields.Selection(
         related="workorder_id.state",
-        store=False,
+        store=True,
         readonly=True,
         string="Status",
     )
