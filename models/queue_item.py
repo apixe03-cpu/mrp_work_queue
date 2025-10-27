@@ -79,3 +79,20 @@ class WorkQueueItem(models.Model):
                 "plan_backlog_helper_id": plan.id if plan else False,
             })
         return True
+    
+    def action_print_wo_80mm(self):
+        """Imprime el reporte térmico 80mm de la workorder de esta fila."""
+        self.ensure_one()
+        if not self.workorder_id:
+            raise UserError(_("No hay una Orden de trabajo asociada para imprimir."))
+
+        # ID del action de reporte que definiste para el 80mm
+        # (lo tienes como "action_report_mrp_workorder_80mm" en tu módulo)
+        report_action = self.env.ref(
+            'mrp_work_queue.action_report_mrp_workorder_80mm', raise_if_not_found=False
+        )
+        if not report_action:
+            raise UserError(_("No se encontró el reporte de OT 80mm."))
+
+        # Devolvemos la acción estándar de report para la(s) workorder(s)
+        return report_action.report_action(self.workorder_id)

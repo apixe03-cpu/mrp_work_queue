@@ -88,6 +88,12 @@
                 <field name="workcenter_id"  string="Centro de trabajo"/>
                 <field name="product_id"     string="Producto"/>
                 <field name="state"          string="Estado"/>
+                <!-- Botón para imprimir el 80mm -->
+                <button name="action_print_wo_80mm"
+                        type="object"
+                        string="🖨 80mm"
+                        class="btn-secondary"
+                        title="Imprimir orden de trabajo en 80mm"/>
                 <button name="action_unassign"
                         type="object"
                         string="←"
