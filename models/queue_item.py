@@ -86,13 +86,13 @@ class WorkQueueItem(models.Model):
         if not self.workorder_id:
             raise UserError(_("No hay una Orden de trabajo asociada para imprimir."))
 
-        # ID del action de reporte que definiste para el 80mm
-        # (lo tienes como "action_report_mrp_workorder_80mm" en tu módulo)
-        report_action = self.env.ref(
-            'mrp_work_queue.report_workorder_80mm', raise_if_not_found=False
-        )
+        # Apuntar a la ACCIÓN, no al template:
+        report_action = self.env.ref('mrp_work_queue.action_report_mrp_workorder_80mm', raise_if_not_found=False)
+        if not report_action:
+            # Fallback por nombre del reporte (opcional, por si cambian el XMLID)
+            report_action = self.env['ir.actions.report']._get_report_from_name('mrp_work_queue.report_workorder_80mm')
         if not report_action:
             raise UserError(_("No se encontró el reporte de OT 80mm."))
 
-        # Devolvemos la acción estándar de report para la(s) workorder(s)
+        # Devolver la acción estándar de impresión
         return report_action.report_action(self.workorder_id)
