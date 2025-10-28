@@ -9,68 +9,57 @@ class WorkQueueItem(models.Model):
 
     sequence = fields.Integer(default=10, string="Sequence")
 
-    workorder_id = fields.Many2one(
-        "mrp.workorder",
-        required=True,
-        ondelete="cascade",
-        index=True,
-        string="Workorder",
-    )
-    workcenter_id = fields.Many2one(
-        related="workorder_id.workcenter_id",
-        store=True,
-        index=True,
-        readonly=True,
-        string="Work Center",
-    )
-    production_id = fields.Many2one(
-        related="workorder_id.production_id",
-        store=False,
-        readonly=True,
-        string="Manufacturing Order",
-    )
-    product_id = fields.Many2one(
-        related="workorder_id.product_id",
-        store=False,
-        readonly=True,
-        string="Product",
-    )
-    state = fields.Selection(
-        related="workorder_id.state",
-        store=True,
-        readonly=True,
-        string="Status",
-    )
+    workorder_id = fields.Many2one("mrp.workorder", required=True, ondelete="cascade", index=True, string="Workorder")
+    workcenter_id = fields.Many2one(related="workorder_id.workcenter_id", store=True, index=True, readonly=True)
+    production_id = fields.Many2one(related="workorder_id.production_id", store=False, readonly=True)
+    product_id = fields.Many2one(related="workorder_id.product_id", store=False, readonly=True)
+    state = fields.Selection(related="workorder_id.state", store=True, readonly=True)
 
-    # Asignación
     employee_id = fields.Many2one("hr.employee", index=True, string="Employee")
     plan_id = fields.Many2one("work.queue.plan", index=True, string="Plan")
     plan_backlog_helper_id = fields.Many2one("work.queue.plan", index=True, string="Plan Backlog Helper")
+
+    # Nueva: Prioridad visible 1..N (no almacenada)
+    priority_index = fields.Integer(string="Prioridad", compute="_compute_priority_index", store=False)
 
     _sql_constraints = [
         ("uniq_workorder", "unique(workorder_id)", "Cada orden de trabajo puede estar en una sola cola."),
     ]
 
-    # ---------- Acciones ----------
+    # ---- Prioridad 1..N
+    def _compute_priority_index(self):
+        for rec in self:
+            if rec.plan_id:
+                ordered = rec.plan_id.line_ids.sorted(lambda x: x.sequence)
+                # índice 1-based
+                rec.priority_index = 1 + next((i for i, it in enumerate(ordered) if it.id == rec.id), 0)
+            else:
+                rec.priority_index = 0
+
+    # ---- Acciones
     def action_assign_to_employee(self):
-        """ Botón →: asigna este ítem al empleado del plan activo. """
+        """ →: asigna al plan activo y APPENDEA (último) """
         plan = self.env["work.queue.plan"].browse(self.env.context.get("active_id"))
         if not plan:
             return
         for rec in self:
-            # si ya estaba asignada, bloquear
             if rec.employee_id and rec.employee_id.id != plan.employee_id.id:
                 raise UserError(_("La orden ya está asignada."))
+
+            # APPEND: tomar max sequence actual y sumar 10
+            last_seq = max(plan.line_ids.mapped('sequence') or [0])
             rec.write({
                 "employee_id": plan.employee_id.id,
                 "plan_id": plan.id,
-                "plan_backlog_helper_id": False,  # ya no está en backlog
+                "plan_backlog_helper_id": False,
+                "sequence": last_seq + 10,
             })
+
         plan._sync_workorder_states()
         return True
 
     def action_unassign(self):
-        """ Botón ←: devuelve a backlog del plan activo (sin empleado). """
+        """ ←: devolver a backlog """
         plan = self.env["work.queue.plan"].browse(self.env.context.get("active_id"))
         for rec in self:
             rec.write({
@@ -90,31 +79,29 @@ class WorkQueueItem(models.Model):
         return res
 
     def write(self, vals):
-        # Detectar reordenamiento que afecte prioridad
-        plans = self.mapped('plan_id')
+        # Si reordenan (cambia sequence) o mueven entre planes, resync
+        plans_before = self.mapped('plan_id')
         res = super().write(vals)
-        if 'sequence' in vals and plans:
-            for plan in plans:
-                plan._sync_workorder_states()
+        plans_after = (self.mapped('plan_id') | plans_before)
+        for plan in plans_after:
+            plan._sync_workorder_states()
         return res
 
     def action_print_wo_80mm(self):
-        """Imprime (y si hace falta, activa) la primera WO de la cola del empleado."""
+        """Imprime (y si hace falta, activa) la PRIMERA WO de la cola."""
         self.ensure_one()
         wo = self.workorder_id
         if not wo:
             raise UserError(_("No hay una Orden de trabajo asociada para imprimir."))
 
-        # 1) Validar que esta WO sea la primera de la cola
         plan = self.plan_id
         if not plan:
             raise UserError(_("Esta orden no está asignada a ninguna cola de trabajo."))
 
-        first_item = plan.line_ids.sorted(lambda x: x.sequence)[0] if plan.line_ids else False
-        if not first_item or first_item.id != self.id:
+        first_item = plan.line_ids.sorted(lambda x: x.sequence)[:1]
+        if not first_item or first_item[0].id != self.id:
             raise UserError(_("Solo se puede imprimir la primera orden en la cola del empleado."))
 
-        # 2) Si está disponible, pasarla a 'en progreso'
         if wo.state not in ('progress', 'done'):
             if hasattr(wo, 'button_start'):
                 wo.button_start()
@@ -123,14 +110,11 @@ class WorkQueueItem(models.Model):
             else:
                 wo.state = 'progress'
 
-        # 3) Asignar responsable a la MO si no lo tiene
         if plan.employee_id and not wo.production_id.user_id and plan.employee_id.user_id:
             wo.production_id.write({'user_id': plan.employee_id.user_id.id})
 
-        # 4) Buscar y ejecutar el reporte
-        report_action = self.env.ref('mrp_work_queue.action_report_mrp_workorder_80mm', raise_if_not_found=False)
-        if not report_action:
-            report_action = self.env['ir.actions.report']._get_report_from_name('mrp_work_queue.report_workorder_80mm')
+        report_action = self.env.ref('mrp_work_queue.action_report_mrp_workorder_80mm', raise_if_not_found=False) \
+                        or self.env['ir.actions.report']._get_report_from_name('mrp_work_queue.report_workorder_80mm')
         if not report_action:
             raise UserError(_("No se encontró el reporte de OT 80mm."))
 

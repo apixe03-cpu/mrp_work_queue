@@ -40,3 +40,8 @@
   width: 1%;
   white-space: nowrap;
 }
+
+/* Sólo dentro del form del plan y sólo la lista derecha con clase mrp-wq-nosort */
+.o_form_view .mrp-wq-nosort .o_list_view thead th {
+  pointer-events: none;   /* desactiva click en headers */
+}

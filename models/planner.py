@@ -131,9 +131,9 @@ class WorkQueuePlan(models.Model):
 
     def _sync_workorder_states(self):
         """
-        Mantiene coherencia de estados en la cola:
-        - La primera WO de cada plan debe estar 'progress'
-        - Las demás no deben quedar en 'progress' (se envían a 'pending'/'ready')
+        Mantiene coherencia:
+        - La primera WO de cada plan → 'progress'
+        - El resto → 'pending' (o 'ready' si no existe 'pending')
         """
         for plan in self:
             ordered = plan.line_ids.sorted(lambda x: x.sequence)
@@ -146,7 +146,6 @@ class WorkQueuePlan(models.Model):
                     continue
 
                 if idx == 0:
-                    # Primera -> debe estar en progreso
                     if wo.state not in ('progress', 'done'):
                         if hasattr(wo, 'button_start'):
                             wo.button_start()
@@ -155,12 +154,16 @@ class WorkQueuePlan(models.Model):
                         else:
                             wo.state = 'progress'
                 else:
-                    # Resto -> no deben quedar en 'progress'
                     if wo.state == 'progress':
                         if hasattr(wo, 'button_pending'):
                             wo.button_pending()
                         elif hasattr(wo, 'action_pending'):
                             wo.action_pending()
+                        elif hasattr(wo, 'button_pause'):
+                            wo.button_pause()
+                        elif hasattr(wo, 'action_pause'):
+                            wo.action_pause()
                         else:
-                            # fallback (algunas versiones usan 'ready')
-                            wo.state = 'pending' if 'pending' in dict(wo._fields['state'].selection) else 'ready'
+                            # fallback a un estado no-progreso
+                            sel = dict(wo._fields['state'].selection)
+                            wo.state = 'pending' if 'pending' in sel else 'ready'

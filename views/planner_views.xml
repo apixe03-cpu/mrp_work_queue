@@ -76,31 +76,28 @@
             <h3 class="mrp-wq-title">Cola del empleado</h3>
             <field name="line_ids"
                    nolabel="1"
-                   domain="[('employee_id','=',employee_id),
-                            ('workcenter_id','=',workcenter_id),
-                            ('workorder_id.state','!=','done'),
-                            ('workorder_id.state','!=','cancel')]"
-                   context="{'active_id': id}"
-                   options="{'no_create': True, 'no_create_edit': True}">
-              <list create="0" delete="0" editable="bottom">
-                <field name="sequence" widget="handle" string="#"/>
-                <field name="workorder_id"   string="Operación"/>
-                <field name="workcenter_id"  string="Centro de trabajo"/>
-                <field name="product_id"     string="Producto"/>
-                <field name="state"          string="Estado"/>
-                <!-- Botón para imprimir el 80mm -->
-                <button name="action_print_wo_80mm"
-                        type="object"
-                        string="🖨 80mm"
-                        class="btn-secondary"
-                        title="Imprimir orden de trabajo en 80mm"/>
-                <button name="action_unassign"
-                        type="object"
-                        string="←"
-                        class="btn-secondary"
-                        title="Quitar de la cola"/>
-              </list>
-            </field>
+                    domain="[('employee_id','=',employee_id), ('workcenter_id','=',workcenter_id)]"
+                    context="{'active_id': id}"
+                    class="mrp-wq-nosort"  <!-- clase para el truco CSS -->
+                    options="{'no_create': True, 'no_create_edit': True}">
+                <list create="0" delete="0" editable="bottom">
+                  <field name="sequence" widget="handle" string=""/>
+                  <field name="priority_index" string="Prioridad" readonly="1"/>
+                  <field name="workorder_id"   string="Operación"/>
+                  <field name="product_id"     string="Producto"/>
+                  <field name="state"          string="Estado"/>
+                  <button name="action_print_wo_80mm"
+                          type="object"
+                          string="🖨"
+                          class="btn-primary"
+                          title="Imprimir OT 80mm (sólo la primera)"/>
+                  <button name="action_unassign"
+                          type="object"
+                          string="←"
+                          class="btn-secondary"
+                          title="Quitar de la cola"/>
+                </list>
+              </field>
           </div>
         </div>
 
