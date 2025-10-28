@@ -27,6 +27,7 @@ class WorkQueueItem(models.Model):
     ]
 
     # ---- Prioridad 1..N
+    @api.depends('sequence', 'plan_id.line_ids.sequence')
     def _compute_priority_index(self):
         for rec in self:
             if rec.plan_id:
