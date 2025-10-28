@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
+from .queue_item import force_resume_wo
 
 class WorkQueueItem(models.Model):
     _name = "work.queue.item"
@@ -89,7 +90,6 @@ class WorkQueueItem(models.Model):
         return res
 
     def action_print_wo_80mm(self):
-        """Imprime (y si hace falta, activa) la PRIMERA WO de la cola."""
         self.ensure_one()
         wo = self.workorder_id
         if not wo:
@@ -103,14 +103,10 @@ class WorkQueueItem(models.Model):
         if not first_item or first_item[0].id != self.id:
             raise UserError(_("Solo se puede imprimir la primera orden en la cola del empleado."))
 
-        if wo.state not in ('progress', 'done'):
-            if hasattr(wo, 'button_start'):
-                wo.button_start()
-            elif hasattr(wo, 'action_start'):
-                wo.action_start()
-            else:
-                wo.state = 'progress'
+        # **aquí** forzamos el resume limpio por si estaba “progress + pausada”
+        force_resume_wo(wo)
 
+        # asignar responsable si no tenía
         if plan.employee_id and not wo.production_id.user_id and plan.employee_id.user_id:
             wo.production_id.write({'user_id': plan.employee_id.user_id.id})
 

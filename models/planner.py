@@ -4,6 +4,31 @@ from odoo.exceptions import UserError, ValidationError
 
 AVAILABLE_STATES = ("ready", "pending", "progress")
 
+# === Helper de módulo: reanudar limpio una WO ===
+def force_resume_wo(wo):
+    # 1) Forzar pausa si está "progress" para evitar estado a medias
+    try:
+        if getattr(wo, 'state', None) == 'progress':
+            if hasattr(wo, 'button_pending'):
+                wo.button_pending()
+            elif hasattr(wo, 'action_pending'):
+                wo.action_pending()
+            elif hasattr(wo, 'button_pause'):
+                wo.button_pause()
+            elif hasattr(wo, 'action_pause'):
+                wo.action_pause()
+    except Exception:
+        pass
+    # 2) Arrancar siempre
+    try:
+        if hasattr(wo, 'button_start'):
+            wo.button_start()
+        elif hasattr(wo, 'action_start'):
+            wo.action_start()
+        else:
+            wo.state = 'progress'
+    except Exception:
+        pass
 
 class WorkQueuePlan(models.Model):
     _name = "work.queue.plan"
@@ -35,7 +60,7 @@ class WorkQueuePlan(models.Model):
     ]
 
     # --- Capa 2: Constrain Python (mensaje claro en UI) ---
-    @api.constrains('workcenter_id', 'employee_id', 'company_id')
+    @api.depends('sequence', 'plan_id', 'plan_id.line_ids', 'plan_id.line_ids.sequence')
     def _check_unique_combo(self):
         for rec in self:
             if not (rec.workcenter_id and rec.employee_id and rec.company_id):
@@ -130,11 +155,6 @@ class WorkQueuePlan(models.Model):
         return True
 
     def _sync_workorder_states(self):
-        """
-        Mantiene coherencia:
-        - La primera WO de cada plan → 'progress'
-        - El resto → 'pending' (o 'ready' si no existe 'pending')
-        """
         for plan in self:
             ordered = plan.line_ids.sorted(lambda x: x.sequence)
             if not ordered:
@@ -146,24 +166,23 @@ class WorkQueuePlan(models.Model):
                     continue
 
                 if idx == 0:
-                    if wo.state not in ('progress', 'done'):
-                        if hasattr(wo, 'button_start'):
-                            wo.button_start()
-                        elif hasattr(wo, 'action_start'):
-                            wo.action_start()
-                        else:
-                            wo.state = 'progress'
+                    # La PRIMERA debe quedar arrancada de verdad (no sólo state='progress')
+                    _force_resume_wo(wo)
                 else:
-                    if wo.state == 'progress':
-                        if hasattr(wo, 'button_pending'):
-                            wo.button_pending()
-                        elif hasattr(wo, 'action_pending'):
-                            wo.action_pending()
-                        elif hasattr(wo, 'button_pause'):
-                            wo.button_pause()
-                        elif hasattr(wo, 'action_pause'):
-                            wo.action_pause()
-                        else:
-                            # fallback a un estado no-progreso
-                            sel = dict(wo._fields['state'].selection)
-                            wo.state = 'pending' if 'pending' in sel else 'ready'
+                    # Las demás NO deben quedar en progreso
+                    if getattr(wo, 'state', None) == 'progress':
+                        try:
+                            if hasattr(wo, 'button_pending'):
+                                wo.button_pending()
+                            elif hasattr(wo, 'action_pending'):
+                                wo.action_pending()
+                            elif hasattr(wo, 'button_pause'):
+                                wo.button_pause()
+                            elif hasattr(wo, 'action_pause'):
+                                wo.action_pause()
+                            else:
+                                sel = dict(wo._fields['state'].selection)
+                                wo.state = 'pending' if 'pending' in sel else 'ready'
+                        except Exception:
+                            # si falló, no reventamos el flujo
+                            pass
