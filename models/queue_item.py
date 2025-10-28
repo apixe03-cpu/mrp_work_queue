@@ -1,7 +1,32 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
-from .queue_item import force_resume_wo
+
+# === Helper de módulo: reanudar limpio una WO ===
+def force_resume_wo(wo):
+    # 1) Forzar pausa si está "progress" para evitar estado a medias
+    try:
+        if getattr(wo, 'state', None) == 'progress':
+            if hasattr(wo, 'button_pending'):
+                wo.button_pending()
+            elif hasattr(wo, 'action_pending'):
+                wo.action_pending()
+            elif hasattr(wo, 'button_pause'):
+                wo.button_pause()
+            elif hasattr(wo, 'action_pause'):
+                wo.action_pause()
+    except Exception:
+        pass
+    # 2) Arrancar siempre
+    try:
+        if hasattr(wo, 'button_start'):
+            wo.button_start()
+        elif hasattr(wo, 'action_start'):
+            wo.action_start()
+        else:
+            wo.state = 'progress'
+    except Exception:
+        pass
 
 class WorkQueueItem(models.Model):
     _name = "work.queue.item"
