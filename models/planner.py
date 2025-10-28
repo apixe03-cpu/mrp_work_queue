@@ -167,7 +167,7 @@ class WorkQueuePlan(models.Model):
 
                 if idx == 0:
                     # La PRIMERA debe quedar arrancada de verdad (no sólo state='progress')
-                    _force_resume_wo(wo)
+                    force_resume_wo(wo)
                 else:
                     # Las demás NO deben quedar en progreso
                     if getattr(wo, 'state', None) == 'progress':
