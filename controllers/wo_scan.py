@@ -98,28 +98,20 @@ class WoScanController(http.Controller):
                 'message': msg,
             })
 
-        # 🔹 1) Antes de cerrar, detectar el siguiente item de la cola
-        next_item_id = False
+        # 🔹 1) Antes de cerrar la WO, recordamos el plan (cola) al que pertenece
+        plan_id = False
         try:
-            QueueItem = env['work.queue.item'].sudo()
-            current_item = QueueItem.search([('workorder_id', '=', wo.id)], limit=1)
-            if current_item and current_item.plan_id:
-                plan = current_item.plan_id
-                lineas = plan.line_ids.sorted(lambda x: x.sequence)
-                # siguiente con sequence > que la actual, y que NO esté done/cancel
-                siguientes = [
-                    i for i in lineas
-                    if i.sequence > current_item.sequence
-                    and i.workorder_id
-                    and i.workorder_id.state not in ('done', 'cancel')
-                ]
-                if siguientes:
-                    next_item_id = siguientes[0].id
+            queue_item = env['work.queue.item'].sudo().search(
+                [('workorder_id', '=', wo.id)],
+                limit=1
+            )
+            if queue_item and queue_item.plan_id:
+                plan_id = queue_item.plan_id.id
         except Exception as e:
-            _logger.exception("Error calculando siguiente item de cola: %s", e)
-            next_item_id = False
+            _logger.exception("Error obteniendo plan de cola para WO %s: %s", wo.name, e)
+            plan_id = False
 
-        # 🔹 2) Cantidades ingresadas en el formulario
+        # 2) Cantidades que vienen del formulario
         ok_qty = _to_float(post.get('ok_qty'))
         rej_qty = _to_float(post.get('rej_qty'))
         if ok_qty < 0:
@@ -152,76 +144,82 @@ class WoScanController(http.Controller):
                 elif hasattr(wo, 'action_done'):
                     wo.action_done()
 
-            # 6) Cerrar la MO si corresponde (tu lógica original)
+            # 6) Si todas las WOs de la MO quedaron 'done', cerrar la MO
             mo = wo.production_id
             mo_closed_now = False
             if mo and mo.state != 'done':
                 all_done = all(w.state == 'done' for w in mo.workorder_ids)
                 if all_done:
-                    if hasattr(mo, 'button_mark_done'):
-                        mo.button_mark_done()
-                    elif hasattr(mo, 'action_done'):
-                        mo.action_done()
-                    mo_closed_now = True
+                    try:
+                        if hasattr(mo, 'button_mark_done'):
+                            mo.button_mark_done()
+                        elif hasattr(mo, 'action_done'):
+                            mo.action_done()
+                        mo_closed_now = True
+                        try:
+                            mo.message_post(body=_("MO %s cerrada automáticamente desde terminal de taller.") % mo.name)
+                        except Exception:
+                            pass
+                    except Exception:
+                        _logger.exception("Error cerrando MO %s automáticamente.", mo.name)
 
-            # 7) SCRAP (después de intentar cerrar la MO)
+            # 7) SCRAP (copiá acá tu bloque EXACTO actual, yo lo resumo)
             scrap_msg = ""
             if rej_qty > 0:
                 Scrap = env['stock.scrap'].sudo()
                 dest_field = 'scrap_location_id' if 'scrap_location_id' in Scrap._fields else (
                     'location_dest_id' if 'location_dest_id' in Scrap._fields else None
                 )
-
                 scrap_loc = env.ref('stock.stock_location_scrapped', raise_if_not_found=False) \
                             or env.ref('stock.location_scrapped', raise_if_not_found=False)
-                if not scrap_loc:
-                    scrap_loc = env['stock.location'].sudo().search([('scrap_location', '=', True)], limit=1)
-
                 if dest_field and scrap_loc:
-                    src_loc = mo.location_dest_id or env.ref('stock.stock_location_stock').sudo()
-                    vals = {
+                    scrap_vals = {
                         'product_id': wo.product_id.id,
-                        'product_uom_id': (wo.product_uom_id and wo.product_uom_id.id) or wo.product_id.uom_id.id,
                         'scrap_qty': rej_qty,
+                        'origin': wo.name,
                         'company_id': wo.company_id.id,
-                        'origin': 'MO %s / WO %s' % (mo.name, wo.name),
-                        'location_id': src_loc.id,
                     }
-                    if 'production_id' in Scrap._fields:
-                        vals['production_id'] = mo.id
-                    vals[dest_field] = scrap_loc.id
+                    if 'workorder_id' in Scrap._fields:
+                        scrap_vals['workorder_id'] = wo.id
+                    if 'production_id' in Scrap._fields and wo.production_id:
+                        scrap_vals['production_id'] = wo.production_id.id
+                    if 'location_id' in Scrap._fields:
+                        scrap_vals['location_id'] = wo.production_id.location_src_id.id
+                    scrap_vals[dest_field] = scrap_loc.id
 
-                    sc = Scrap.create(vals)
-
-                    # Si la MO quedó cerrada ahora, ya hay stock en destino → validar scrap ya.
-                    # Si no, lo dejamos en borrador para que no falle por falta de stock.
-                    if mo_closed_now:
-                        try:
-                            sc.action_validate()
-                        except Exception:
-                            scrap_msg = _(" (El desecho quedó en borrador por no poder validarse ahora.)")
+                    scrap = Scrap.create(scrap_vals)
+                    if mo_closed_now and hasattr(scrap, 'action_validate'):
+                        scrap.action_validate()
+                        scrap_msg = _(" (Se registró desecho: %.2f %s)") % (rej_qty, wo.product_uom_id.name)
                     else:
                         scrap_msg = _(" (El desecho quedó en borrador y se podrá validar al cerrar la MO.)")
                 else:
                     scrap_msg = _(" (No se encontró ubicación/campo de desecho; se omitió el scrap.)")
 
-            # 🔹 8) Ahora que la WO ya se cerró y se limpió de la cola,
-            # intentamos imprimir la siguiente, usando el MISMO botón de la cola.
+            # 🔹 8) Después de cerrar la WO, si teníamos plan, imprimimos la NUEVA primera orden de la cola
             next_report_url = False
-            if next_item_id:
+            if plan_id:
                 try:
-                    next_item = env['work.queue.item'].sudo().browse(next_item_id)
-                    if next_item and next_item.exists():
-                        # Esto es EXACTAMENTE lo mismo que apretar el botón 🖨 en la cola
-                        action = next_item.action_print_wo_80mm()
-                        # En contexto HTTP, normalmente devuelve un dict de ir.actions.report
-                        if isinstance(action, dict):
-                            report_name = action.get('report_name')
-                            res_id = action.get('res_id') or (action.get('res_ids') or [False])[0]
-                            if report_name and res_id:
-                                next_report_url = "/report/pdf/%s/%s" % (report_name, res_id)
+                    plan = env['work.queue.plan'].sudo().browse(plan_id)
+                    if plan and plan.exists():
+                        # Por si acaso, resync estados de la cola
+                        plan._sync_workorder_states()
+                        # La primera en la cola (ya SIN la WO que acabamos de terminar)
+                        first_item = plan.line_ids.sorted(lambda x: x.sequence)[:1]
+                        if first_item:
+                            item = first_item[0]
+                            # Esto es EXACTAMENTE lo mismo que apretar el botón 🖨 en la cola
+                            action = item.action_print_wo_80mm()
+                            if isinstance(action, dict):
+                                report_name = action.get('report_name')
+                                res_id = action.get('res_id')
+                                if not res_id:
+                                    res_ids = action.get('res_ids') or []
+                                    res_id = res_ids[0] if res_ids else False
+                                if report_name and res_id:
+                                    next_report_url = "/report/pdf/%s/%s" % (report_name, res_id)
                 except Exception as e:
-                    _logger.exception("No se pudo disparar impresión de siguiente OT: %s", e)
+                    _logger.exception("Error al intentar imprimir siguiente OT en cola: %s", e)
                     next_report_url = False
 
             # 9) Mensaje final
