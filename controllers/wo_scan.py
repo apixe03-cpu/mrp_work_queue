@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
 from odoo import http, _, fields as odoo_fields
-from odoo.http import request
+from odoo.http import request, content_disposition
 from werkzeug.exceptions import NotFound
 
 _logger = logging.getLogger(__name__)
@@ -201,70 +201,22 @@ class WoScanController(http.Controller):
                 else:
                     scrap_msg = _(" (No se encontró ubicación/campo de desecho; se omitió el scrap.)")
 
-            # 🔹 6) Imprimir la siguiente OT de la cola, copiando la lógica del botón 🖨
-            next_report_url = False
+            # 🔹 6) Buscar la siguiente OT en la cola (nueva primera) y, si existe, devolver el PDF
+            next_wo = False
             if plan_id:
                 try:
                     plan = env['work.queue.plan'].sudo().browse(plan_id)
                     if plan and plan.exists():
-                        # La cola ya no tiene la WO que acabamos de terminar porque el inherit
-                        # mrp_workorder_queue_clean borra ese item al pasar a 'done'.
-                        # Ahora la "siguiente" es la que tenga menor sequence.
+                        # La WO actual ya salió de la cola por el inherit mrp_workorder_queue_clean
                         ordered = plan.line_ids.sorted(lambda x: x.sequence)
                         if ordered:
                             next_item = ordered[0]
                             next_wo = next_item.workorder_id
-
-                            if next_wo and next_wo.exists():
-                                # **************
-                                # COPIA DE LÓGICA DE action_print_wo_80mm,
-                                # pero sin chequear "solo la primera de la cola"
-                                # **************
-                                # 1) Reanudar limpio por si estaba pausada
-                                try:
-                                    from odoo.exceptions import UserError
-                                except ImportError:
-                                    UserError = Exception
-
-                                try:
-                                    # importamos la función force_resume_wo del mismo lugar
-                                    from odoo.addons.mrp_work_queue.models.queue_item import force_resume_wo
-                                except Exception:
-                                    force_resume_wo = None
-
-                                if force_resume_wo:
-                                    try:
-                                        force_resume_wo(next_wo)
-                                    except Exception:
-                                        _logger.exception("Error al intentar reanudar WO %s antes de imprimir.", next_wo.name)
-
-                                # 2) Asignar responsable si el plan tiene empleado y la MO no tiene usuario
-                                if plan.employee_id and not next_wo.production_id.user_id and plan.employee_id.user_id:
-                                    next_wo.production_id.write({'user_id': plan.employee_id.user_id.id})
-
-                                # 3) Obtener la acción de reporte exactamente igual que en el botón
-                                report_action = env.ref(
-                                    'mrp_work_queue.action_report_mrp_workorder_80mm',
-                                    raise_if_not_found=False
-                                ) or env['ir.actions.report']._get_report_from_name(
-                                    'mrp_work_queue.report_workorder_80mm'
-                                )
-
-                                if report_action:
-                                    # En lugar de retornar la acción al cliente (como en el backend),
-                                    # armamos directamente la URL del PDF:
-                                    # /report/pdf/<report_name>/<res_id>
-                                    # el "name" técnico del reporte es el mismo que se usa en el XML.
-                                    report_name = report_action.report_name or 'mrp_work_queue.report_workorder_80mm'
-                                    res_id = next_wo.id
-                                    next_report_url = "/report/pdf/%s/%s" % (report_name, res_id)
-                                else:
-                                    _logger.warning("No se encontró la acción de reporte 80mm.")
                 except Exception as e:
-                    _logger.exception("Error al intentar imprimir siguiente OT de cola: %s", e)
-                    next_report_url = False
+                    _logger.exception("Error obteniendo siguiente OT de la cola: %s", e)
+                    next_wo = False
 
-            # 7) Mensaje final
+            # 7) Mensaje final (por si no hay siguiente OT o falla el reporte)
             finished_dt = getattr(wo, 'date_finished', None) or getattr(wo, 'date_end', None)
             msg = _("Orden finalizada. OK: %(ok).2f, Rechazo: %(rej).2f. Cierre: %(dt)s%(extra)s") % {
                 'ok': ok_qty,
@@ -272,12 +224,52 @@ class WoScanController(http.Controller):
                 'dt': _fmt_dt(finished_dt),
                 'extra': scrap_msg,
             }
-            return request.render('mrp_work_queue.wo_finish_result', {
-                'ok': True,
-                'message': msg,
-                'next_report_url': next_report_url,
-            })
 
+            # Si NO hay siguiente OT en la cola, mostramos la pantalla de resultado como siempre
+            if not next_wo or not next_wo.exists():
+                return request.render('mrp_work_queue.wo_finish_result', {
+                    'ok': True,
+                    'message': msg,
+                })
+
+            # Si HAY siguiente OT, generamos el PDF del reporte 80mm y lo devolvemos como descarga
+            try:
+                report_action = env.ref(
+                    'mrp_work_queue.action_report_mrp_workorder_80mm',
+                    raise_if_not_found=False,
+                ) or env['ir.actions.report']._get_report_from_name(
+                    'mrp_work_queue.report_workorder_80mm'
+                )
+
+                if not report_action:
+                    # Si por alguna razón no hay reporte, volvemos al HTML normal
+                    _logger.warning("No se encontró la acción de reporte 80mm.")
+                    return request.render('mrp_work_queue.wo_finish_result', {
+                        'ok': True,
+                        'message': msg,
+                    })
+
+                # Renderizar el PDF en servidor
+                pdf_content, _ = report_action._render_qweb_pdf(next_wo.ids)
+
+                # Nombre de archivo similar al print_report_name del XML
+                safe_name = (next_wo.name or '').replace('/', '_')
+                filename = f"OT_80mm_{safe_name}.pdf"
+
+                headers = [
+                    ('Content-Type', 'application/pdf'),
+                    ('Content-Length', len(pdf_content)),
+                    ('Content-Disposition', content_disposition(filename)),
+                ]
+                return request.make_response(pdf_content, headers=headers)
+
+            except Exception as e:
+                _logger.exception("Error al generar PDF de siguiente OT de cola: %s", e)
+                # fallback seguro: mostramos la pantalla normal aunque falle el PDF
+                return request.render('mrp_work_queue.wo_finish_result', {
+                    'ok': True,
+                    'message': msg,
+                })
         except Exception as e:
             _logger.exception("Error finalizando WO %s", wo.name)
             return request.render('mrp_work_queue.wo_finish_result', {

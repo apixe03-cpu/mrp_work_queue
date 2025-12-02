@@ -42,24 +42,16 @@
   </template>
 
   <template id="wo_finish_result">
-    <t t-call="web.layout">
-      <div class="container" style="max-width:720px;padding:16px">
-        <t t-if="ok">
-          <h3 style="color:green;">OK</h3>
-        </t>
-        <t t-else="">
-          <h3 style="color:crimson;">Error</h3>
-        </t>
-        <p><t t-esc="message"/></p>
-
-        <!-- Si tenemos una siguiente OT a imprimir, disparar la descarga -->
-        <t t-if="next_report_url">
-          <p style="margin-top:16px;">
-            Se está descargando la siguiente orden de la cola...
-          </p>
-          <iframe t-att-src="next_report_url" style="display:none;"></iframe>
-        </t>
-      </div>
-    </t>
+  <t t-call="web.layout">
+    <div class="container" style="max-width:720px;padding:16px">
+      <t t-if="ok">
+        <h3 style="color:green;">OK</h3>
+      </t>
+      <t t-else="">
+        <h3 style="color:crimson;">Error</h3>
+      </t>
+      <p><t t-esc="message"/></p>
+    </div>
+  </t>
   </template>
 </odoo>
