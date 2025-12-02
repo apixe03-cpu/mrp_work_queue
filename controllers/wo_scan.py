@@ -189,8 +189,6 @@ class WoScanController(http.Controller):
 
                     sc = Scrap.create(vals)
 
-                    # Si la MO quedó cerrada ahora, ya hay stock en destino → validar scrap ya.
-                    # Si no, lo dejamos en borrador para que no falle por falta de stock.
                     if mo_closed_now:
                         try:
                             sc.action_validate()
@@ -207,11 +205,20 @@ class WoScanController(http.Controller):
                 try:
                     plan = env['work.queue.plan'].sudo().browse(plan_id)
                     if plan and plan.exists():
-                        # La WO actual ya salió de la cola por el inherit mrp_workorder_queue_clean
                         ordered = plan.line_ids.sorted(lambda x: x.sequence)
                         if ordered:
                             next_item = ordered[0]
                             next_wo = next_item.workorder_id
+                            _logger.info(
+                                "Siguiente OT en cola para plan %s: %s (%s)",
+                                plan.display_name,
+                                next_wo.id if next_wo else None,
+                                next_wo.name if next_wo else None,
+                            )
+                        else:
+                            _logger.info("Plan %s no tiene más líneas en la cola.", plan.display_name)
+                    else:
+                        _logger.info("Plan %s no existe o no tiene líneas.", plan_id)
                 except Exception as e:
                     _logger.exception("Error obteniendo siguiente OT de la cola: %s", e)
                     next_wo = False
@@ -227,6 +234,7 @@ class WoScanController(http.Controller):
 
             # Si NO hay siguiente OT en la cola, mostramos la pantalla de resultado como siempre
             if not next_wo or not next_wo.exists():
+                _logger.info("WO %s finalizada. No hay siguiente OT en cola para imprimir.", wo.name)
                 return request.render('mrp_work_queue.wo_finish_result', {
                     'ok': True,
                     'message': msg,
@@ -242,17 +250,32 @@ class WoScanController(http.Controller):
                 )
 
                 if not report_action:
-                    # Si por alguna razón no hay reporte, volvemos al HTML normal
                     _logger.warning("No se encontró la acción de reporte 80mm.")
                     return request.render('mrp_work_queue.wo_finish_result', {
                         'ok': True,
                         'message': msg,
                     })
 
-                # Renderizar el PDF en servidor
-                pdf_content, _ = report_action._render_qweb_pdf(next_wo.ids)
+                _logger.info(
+                    "Generando PDF 80mm para WO %s (%s) con reporte %s",
+                    next_wo.name,
+                    next_wo.id,
+                    report_action.report_name,
+                )
 
-                # Nombre de archivo similar al print_report_name del XML
+                result = report_action._render_qweb_pdf([next_wo.id])
+                if isinstance(result, (list, tuple)):
+                    pdf_content = result[0]
+                else:
+                    pdf_content = result
+
+                if not pdf_content:
+                    _logger.error("Render del reporte 80mm devolvió contenido vacío.")
+                    return request.render('mrp_work_queue.wo_finish_result', {
+                        'ok': True,
+                        'message': msg,
+                    })
+
                 safe_name = (next_wo.name or '').replace('/', '_')
                 filename = f"OT_80mm_{safe_name}.pdf"
 
@@ -265,11 +288,11 @@ class WoScanController(http.Controller):
 
             except Exception as e:
                 _logger.exception("Error al generar PDF de siguiente OT de cola: %s", e)
-                # fallback seguro: mostramos la pantalla normal aunque falle el PDF
                 return request.render('mrp_work_queue.wo_finish_result', {
                     'ok': True,
                     'message': msg,
                 })
+
         except Exception as e:
             _logger.exception("Error finalizando WO %s", wo.name)
             return request.render('mrp_work_queue.wo_finish_result', {
