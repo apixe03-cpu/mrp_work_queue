@@ -51,33 +51,6 @@
           <h3 style="color:crimson;">Error</h3>
         </t>
         <p><t t-esc="message"/></p>
-
-        <!-- Si tenemos data para imprimir la siguiente OT, disparar el MISMO flujo que el botón -->
-        <t t-if="print_data">
-          <p style="margin-top:16px;">
-            Se está descargando la siguiente orden de la cola...
-          </p>
-
-          <!-- Formulario oculto que hace POST a /report/download como hace el webclient -->
-          <form id="auto_print_next_wo"
-                t-att-action="print_url"
-                method="post"
-                target="_blank"
-                style="display:none;">
-            <input type="hidden" name="data" t-att-value="print_data"/>
-            <!-- el token es cualquier string; el controlador sólo lo devuelve como cookie -->
-            <input type="hidden" name="token" value="terminal-print-token"/>
-          </form>
-
-          <script type="text/javascript">
-            (function () {
-              var f = document.getElementById('auto_print_next_wo');
-              if (f) {
-                f.submit();
-              }
-            })();
-          </script>
-        </t>
       </div>
     </t>
   </template>
