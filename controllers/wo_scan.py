@@ -199,18 +199,12 @@ class WoScanController(http.Controller):
                 else:
                     scrap_msg = _(" (No se encontró ubicación/campo de desecho; se omitió el scrap.)")
 
-            # 🔹 6) Preparar datos de IMPRESIÓN de la siguiente OT usando EXACTAMENTE el botón
-            print_data = False   # JSON que va a /report/download
-            print_url = False    # siempre "/report/download" cuando haya algo
-
+            # 🔹 6) Buscar la siguiente OT en la cola (nueva primera)
+            next_wo = False
             if plan_id:
                 try:
                     plan = env['work.queue.plan'].sudo().browse(plan_id)
                     if plan and plan.exists():
-                        # Reordenar y asegurar estados de cola
-                        if hasattr(plan, '_sync_workorder_states'):
-                            plan._sync_workorder_states()
-
                         ordered = plan.line_ids.sorted(lambda x: x.sequence)
                         if ordered:
                             next_item = ordered[0]
@@ -221,39 +215,15 @@ class WoScanController(http.Controller):
                                 next_wo.id if next_wo else None,
                                 next_wo.name if next_wo else None,
                             )
-
-                            # ⬇️ ESTA ES LA MISMA LLAMADA QUE EL BOTÓN
-                            action = next_item.action_print_wo_80mm()
-                            if isinstance(action, dict):
-                                report_name = action.get('report_name') or action.get('report_file')
-                                # Sacamos docids tal como los usaría el webclient
-                                res_ids = []
-                                if action.get('res_id'):
-                                    res_ids = [action['res_id']]
-                                elif action.get('res_ids'):
-                                    res_ids = action['res_ids']
-                                elif action.get('context', {}).get('active_ids'):
-                                    res_ids = action['context']['active_ids']
-
-                                if report_name and res_ids:
-                                    url = "/report/pdf/%s/%s" % (report_name, ",".join(str(r) for r in res_ids))
-                                    # Formato EXACTO que espera /report/download: [url, type]
-                                    print_data = json.dumps([url, 'qweb-pdf'])
-                                    print_url = "/report/download"
-                                    _logger.info(
-                                        "Preparado auto-download para reporte %s, docids=%s",
-                                        report_name, res_ids
-                                    )
                         else:
                             _logger.info("Plan %s no tiene más líneas en la cola.", plan.display_name)
                     else:
                         _logger.info("Plan %s no existe o no tiene líneas.", plan_id)
                 except Exception as e:
-                    _logger.exception("Error preparando impresión de siguiente OT de la cola: %s", e)
-                    print_data = False
-                    print_url = False
+                    _logger.exception("Error obteniendo siguiente OT de la cola: %s", e)
+                    next_wo = False
 
-            # 7) Mensaje final
+            # 7) Mensaje final (por si no hay siguiente OT)
             finished_dt = getattr(wo, 'date_finished', None) or getattr(wo, 'date_end', None)
             msg = _("Orden finalizada. OK: %(ok).2f, Rechazo: %(rej).2f. Cierre: %(dt)s%(extra)s") % {
                 'ok': ok_qty,
@@ -262,14 +232,28 @@ class WoScanController(http.Controller):
                 'extra': scrap_msg,
             }
 
-            # Render siempre la plantilla de resultado.
-            # Si hay print_data, el template dispara el POST a /report/download (igual que el botón).
-            return request.render('mrp_work_queue.wo_finish_result', {
-                'ok': True,
-                'message': msg,
-                'print_url': print_url,
-                'print_data': print_data,
-            })
+            # Si NO hay siguiente OT en la cola, mostramos la pantalla de resultado como siempre
+            if not next_wo or not next_wo.exists():
+                _logger.info("WO %s finalizada. No hay siguiente OT en cola para imprimir.", wo.name)
+                return request.render('mrp_work_queue.wo_finish_result', {
+                    'ok': True,
+                    'message': msg,
+                })
+
+            # 🔹 8) Si HAY siguiente OT, redirigimos directamente al PDF del reporte 80mm
+            try:
+                # Usamos el mismo nombre técnico de reporte que el botón
+                report_name = 'mrp_work_queue.report_workorder_80mm'
+                url = "/report/pdf/%s/%s" % (report_name, next_wo.id)
+                _logger.info("Redirigiendo a %s para descargar próxima OT %s (%s)", url, next_wo.name, next_wo.id)
+                return request.redirect(url)
+            except Exception as e:
+                _logger.exception("Error al redirigir al PDF de siguiente OT de cola: %s", e)
+                # fallback: al menos mostramos el mensaje de cierre
+                return request.render('mrp_work_queue.wo_finish_result', {
+                    'ok': True,
+                    'message': msg,
+                })
 
         except Exception as e:
             _logger.exception("Error finalizando WO %s", wo.name)
