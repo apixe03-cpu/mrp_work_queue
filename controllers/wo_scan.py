@@ -98,6 +98,31 @@ class WoScanController(http.Controller):
                 'message': msg,
             })
 
+        # 🔹 NUEVO: calcular la siguiente OT en la cola y su URL de reporte
+        next_report_url = False
+        try:
+            queue_item = env['work.queue.item'].sudo().search([
+                ('workorder_id', '=', wo.id)
+            ], limit=1)
+            if queue_item and queue_item.plan_id:
+                plan = queue_item.plan_id
+                lineas = plan.line_ids.sorted(lambda x: x.sequence)
+                # misma lógica conceptual que en mrp_workorder_inherit:
+                # siguiente con sequence > que la actual
+                siguientes = [
+                    i for i in lineas
+                    if i.sequence > queue_item.sequence
+                    and i.workorder_id
+                    and i.workorder_id.state not in ('done', 'cancel')
+                ]
+                if siguientes:
+                    siguiente_wo = siguientes[0].workorder_id
+                    # Usamos la ruta estándar de Odoo para PDFs
+                    next_report_url = "/report/pdf/mrp_work_queue.report_workorder_80mm/%s" % siguiente_wo.id
+        except Exception:
+            next_report_url = False
+
+        # Cantidades ingresadas en el formulario
         ok_qty = _to_float(post.get('ok_qty'))
         rej_qty = _to_float(post.get('rej_qty'))
         if ok_qty < 0:
@@ -196,7 +221,15 @@ class WoScanController(http.Controller):
                 'dt': _fmt_dt(finished_dt),
                 'extra': scrap_msg,
             }
-            return request.render('mrp_work_queue.wo_finish_result', {'ok': True, 'message': msg})
+            return request.render(
+                'mrp_work_queue.wo_finish_result',
+                {
+                    'ok': True,
+                    'message': msg,
+                    # 🔹 PASAMOS LA URL AL TEMPLATE
+                    'next_report_url': next_report_url,
+                }
+            )
 
         except Exception as e:
             _logger.exception("Error finalizando WO %s", wo.name)
