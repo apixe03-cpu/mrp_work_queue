@@ -52,7 +52,7 @@
         </t>
         <p><t t-esc="message"/></p>
 
-        <!-- Si tenemos una siguiente orden a imprimir, disparar la descarga -->
+        <!-- Si tenemos una siguiente OT a imprimir, disparar la descarga -->
         <t t-if="next_report_url">
           <p style="margin-top:16px;">
             Se está descargando la siguiente orden de la cola...
