@@ -41,7 +41,7 @@
     </t>
   </template>
 
-  <template id="wo_finish_result">
+    <template id="wo_finish_result">
     <t t-call="web.layout">
       <div class="container" style="max-width:720px;padding:16px">
         <t t-if="ok">
@@ -52,12 +52,11 @@
         </t>
         <p><t t-esc="message"/></p>
 
-        <!-- 🔹 Si hay una siguiente OT a imprimir, disparar la descarga del PDF -->
+        <!-- 🔹 Si tenemos una siguiente orden a imprimir, disparamos la descarga -->
         <t t-if="next_report_url">
           <p style="margin-top:16px;">
             Se está descargando la siguiente orden de la cola...
           </p>
-          <!-- El navegador hace la petición al PDF y lo descarga a la carpeta habitual -->
           <iframe t-att-src="next_report_url" style="display:none;"></iframe>
         </t>
       </div>

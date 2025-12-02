@@ -98,31 +98,28 @@ class WoScanController(http.Controller):
                 'message': msg,
             })
 
-        # 🔹 NUEVO: calcular la siguiente OT en la cola y su URL de reporte
-        next_report_url = False
+        # 🔹 1) Antes de cerrar, detectar el siguiente item de la cola
+        next_item_id = False
         try:
-            queue_item = env['work.queue.item'].sudo().search([
-                ('workorder_id', '=', wo.id)
-            ], limit=1)
-            if queue_item and queue_item.plan_id:
-                plan = queue_item.plan_id
+            QueueItem = env['work.queue.item'].sudo()
+            current_item = QueueItem.search([('workorder_id', '=', wo.id)], limit=1)
+            if current_item and current_item.plan_id:
+                plan = current_item.plan_id
                 lineas = plan.line_ids.sorted(lambda x: x.sequence)
-                # misma lógica conceptual que en mrp_workorder_inherit:
-                # siguiente con sequence > que la actual
+                # siguiente con sequence > que la actual, y que NO esté done/cancel
                 siguientes = [
                     i for i in lineas
-                    if i.sequence > queue_item.sequence
+                    if i.sequence > current_item.sequence
                     and i.workorder_id
                     and i.workorder_id.state not in ('done', 'cancel')
                 ]
                 if siguientes:
-                    siguiente_wo = siguientes[0].workorder_id
-                    # Usamos la ruta estándar de Odoo para PDFs
-                    next_report_url = "/report/pdf/mrp_work_queue.report_workorder_80mm/%s" % siguiente_wo.id
-        except Exception:
-            next_report_url = False
+                    next_item_id = siguientes[0].id
+        except Exception as e:
+            _logger.exception("Error calculando siguiente item de cola: %s", e)
+            next_item_id = False
 
-        # Cantidades ingresadas en el formulario
+        # 🔹 2) Cantidades ingresadas en el formulario
         ok_qty = _to_float(post.get('ok_qty'))
         rej_qty = _to_float(post.get('rej_qty'))
         if ok_qty < 0:
@@ -132,14 +129,14 @@ class WoScanController(http.Controller):
         total_qty = ok_qty + rej_qty
 
         try:
-            # 1) Asegurar la OT en progreso
+            # 3) Asegurar la OT en progreso
             if wo.state not in ('progress', 'done'):
                 if hasattr(wo, 'button_start'):
                     wo.button_start()
                 elif hasattr(wo, 'action_start'):
                     wo.action_start()
 
-            # 2) Registrar producción de TODO lo procesado (OK + Rechazo)
+            # 4) Registrar producción de TODO lo procesado (OK + Rechazo)
             if total_qty > 0:
                 if hasattr(wo, 'record_production'):
                     wo.qty_producing = total_qty
@@ -148,14 +145,14 @@ class WoScanController(http.Controller):
                     wo.qty_producing = total_qty
                     wo.button_finish()
 
-            # 3) Cerrar la WO si sigue abierta
+            # 5) Cerrar la WO si sigue abierta
             if wo.state != 'done':
                 if hasattr(wo, 'button_finish'):
                     wo.button_finish()
                 elif hasattr(wo, 'action_done'):
                     wo.action_done()
 
-            # 4) Si todas las WOs de la MO quedaron 'done', cerrar la MO (esto asienta stock del terminado)
+            # 6) Cerrar la MO si corresponde (tu lógica original)
             mo = wo.production_id
             mo_closed_now = False
             if mo and mo.state != 'done':
@@ -165,14 +162,9 @@ class WoScanController(http.Controller):
                         mo.button_mark_done()
                     elif hasattr(mo, 'action_done'):
                         mo.action_done()
-                    mo_closed_now = (mo.state == 'done')
-                    # Nota informativa en el chatter
-                    try:
-                        mo.message_post(body=_("MO %s cerrada automáticamente desde terminal de taller.") % mo.name)
-                    except Exception:
-                        pass
+                    mo_closed_now = True
 
-            # 5) SCRAP (después de intentar cerrar la MO)
+            # 7) SCRAP (después de intentar cerrar la MO)
             scrap_msg = ""
             if rej_qty > 0:
                 Scrap = env['stock.scrap'].sudo()
@@ -213,7 +205,26 @@ class WoScanController(http.Controller):
                 else:
                     scrap_msg = _(" (No se encontró ubicación/campo de desecho; se omitió el scrap.)")
 
-            # 6) Mensaje final
+            # 🔹 8) Ahora que la WO ya se cerró y se limpió de la cola,
+            # intentamos imprimir la siguiente, usando el MISMO botón de la cola.
+            next_report_url = False
+            if next_item_id:
+                try:
+                    next_item = env['work.queue.item'].sudo().browse(next_item_id)
+                    if next_item and next_item.exists():
+                        # Esto es EXACTAMENTE lo mismo que apretar el botón 🖨 en la cola
+                        action = next_item.action_print_wo_80mm()
+                        # En contexto HTTP, normalmente devuelve un dict de ir.actions.report
+                        if isinstance(action, dict):
+                            report_name = action.get('report_name')
+                            res_id = action.get('res_id') or (action.get('res_ids') or [False])[0]
+                            if report_name and res_id:
+                                next_report_url = "/report/pdf/%s/%s" % (report_name, res_id)
+                except Exception as e:
+                    _logger.exception("No se pudo disparar impresión de siguiente OT: %s", e)
+                    next_report_url = False
+
+            # 9) Mensaje final
             finished_dt = getattr(wo, 'date_finished', None) or getattr(wo, 'date_end', None)
             msg = _("Orden finalizada. OK: %(ok).2f, Rechazo: %(rej).2f. Cierre: %(dt)s%(extra)s") % {
                 'ok': ok_qty,
@@ -226,7 +237,6 @@ class WoScanController(http.Controller):
                 {
                     'ok': True,
                     'message': msg,
-                    # 🔹 PASAMOS LA URL AL TEMPLATE
                     'next_report_url': next_report_url,
                 }
             )
