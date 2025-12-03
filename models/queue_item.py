@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
+import logging
+
+_logger = logging.getLogger(__name__)
 
 # === Helper de módulo: reanudar limpio una WO ===
 def force_resume_wo(wo):
@@ -139,5 +142,8 @@ class WorkQueueItem(models.Model):
                         or self.env['ir.actions.report']._get_report_from_name('mrp_work_queue.report_workorder_80mm')
         if not report_action:
             raise UserError(_("No se encontró el reporte de OT 80mm."))
+        
+        action = report_action.report_action(wo)
+        _logger.warning("DEBUG_PRINT_ACTION: %s", action)
 
         return report_action.report_action(wo)
