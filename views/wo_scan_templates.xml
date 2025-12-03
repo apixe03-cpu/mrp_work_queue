@@ -41,17 +41,23 @@
     </t>
   </template>
 
-  <template id="wo_finish_result">
+  <template id="wo_finish_download">
     <t t-call="web.layout">
-      <div class="container" style="max-width:720px;padding:16px">
-        <t t-if="ok">
-          <h3 style="color:green;">OK</h3>
-        </t>
-        <t t-else="">
-          <h3 style="color:crimson;">Error</h3>
-        </t>
-        <p><t t-esc="message"/></p>
-      </div>
+        <div class="container" style="max-width:720px;padding:16px">
+            <h3 style="color:green;">OK</h3>
+            <p><t t-esc="message"/></p>
+
+            <p>Se está descargando la siguiente orden de la cola...</p>
+
+            <form id="pdf_form" action="/report/download" method="post" style="display:none;">
+                <input type="hidden" name="data" t-att-value="data_payload"/>
+                <input type="hidden" name="token" value="terminal_token"/>
+            </form>
+
+            <script>
+                document.getElementById("pdf_form").submit();
+            </script>
+        </div>
     </t>
   </template>
 </odoo>

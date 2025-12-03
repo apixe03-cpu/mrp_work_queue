@@ -3,7 +3,7 @@ import logging
 import json
 
 from odoo import http, _, fields as odoo_fields
-from odoo.http import request, content_disposition
+from odoo.http import request
 from werkzeug.exceptions import NotFound
 
 _logger = logging.getLogger(__name__)
@@ -34,11 +34,12 @@ class WoScanController(http.Controller):
 
     @http.route('/wo/<int:wo_id>', type='http', auth='user', methods=['GET'], csrf=False)
     def wo_form(self, wo_id, **kw):
+        """Formulario simple para cerrar una OT desde el terminal."""
         wo = request.env['mrp.workorder'].sudo().browse(wo_id)
         if not wo.exists():
             raise NotFound()
 
-        # 1) Si la OT ya está terminada, mostramos info y NO dejamos cargar nada
+        # Si la OT ya está terminada, mostramos info y NO dejamos cargar nada
         if wo.state == 'done':
             produced = getattr(wo, 'qty_produced', 0.0)
             finished_dt = getattr(wo, 'date_finished', None) or getattr(wo, 'date_end', None)
@@ -70,6 +71,7 @@ class WoScanController(http.Controller):
 
     @http.route('/wo/<int:wo_id>/finish', type='http', auth='user', methods=['POST'], csrf=False)
     def wo_finish(self, wo_id, **post):
+        """Cierra la OT y dispara la descarga de la siguiente OT en la cola (PDF 80mm)."""
         env = request.env
         wo = env['mrp.workorder'].sudo().browse(wo_id)
         if not wo.exists():
@@ -99,7 +101,7 @@ class WoScanController(http.Controller):
                 'message': msg,
             })
 
-        # 🔹 Antes de tocar nada, ver a qué plan/cola pertenece esta WO
+        # 🔹 Averiguar a qué plan/cola pertenece esta WO (antes de tocar estados)
         plan_id = False
         try:
             queue_item = env['work.queue.item'].sudo().search(
@@ -223,7 +225,7 @@ class WoScanController(http.Controller):
                     _logger.exception("Error obteniendo siguiente OT de la cola: %s", e)
                     next_wo = False
 
-            # 7) Mensaje final (por si no hay siguiente OT)
+            # 7) Mensaje final (usado siempre)
             finished_dt = getattr(wo, 'date_finished', None) or getattr(wo, 'date_end', None)
             msg = _("Orden finalizada. OK: %(ok).2f, Rechazo: %(rej).2f. Cierre: %(dt)s%(extra)s") % {
                 'ok': ok_qty,
@@ -240,19 +242,26 @@ class WoScanController(http.Controller):
                     'message': msg,
                 })
 
-            # 🔹 8) Si HAY siguiente OT, redirigimos directamente al PDF del reporte 80mm
-            try:
-                report_name = 'mrp_work_queue.report_workorder_80mm'
-                url = "/report/pdf/%s/%s" % (report_name, next_wo.id)
-                _logger.info("Redirigiendo a %s para descargar próxima OT %s (%s)", url, next_wo.name, next_wo.id)
-                return request.redirect(url)
-            except Exception as e:
-                _logger.exception("Error al redirigir al PDF de siguiente OT de cola: %s", e)
-                # fallback: al menos mostramos el mensaje de cierre
-                return request.render('mrp_work_queue.wo_finish_result', {
-                    'ok': True,
-                    'message': msg,
-                })
+            # 🔹 8) Si HAY siguiente OT, armamos el mismo payload que usa el botón hacia /report/download
+            report_name = "mrp_work_queue.report_workorder_80mm"
+            pdf_url = "/report/pdf/%s/%s" % (report_name, next_wo.id)
+
+            # EXACTAMENTE lo que viste en DevTools:
+            # data = ["/report/pdf/mrp_work_queue.report_workorder_80mm/131","qweb-pdf"]
+            data_payload = json.dumps([pdf_url, "qweb-pdf"])
+
+            _logger.info(
+                "Preparando auto-descarga de siguiente OT %s (%s) con data=%s",
+                next_wo.name,
+                next_wo.id,
+                data_payload,
+            )
+
+            return request.render('mrp_work_queue.wo_finish_download', {
+                'ok': True,
+                'message': msg,
+                'data_payload': data_payload,
+            })
 
         except Exception as e:
             _logger.exception("Error finalizando WO %s", wo.name)
