@@ -240,45 +240,14 @@ class WoScanController(http.Controller):
                     'message': msg,
                 })
 
-            # 🔹 8) Si HAY siguiente OT, generamos el PDF 80mm y lo devolvemos como DESCARGA DIRECTA
+            # 🔹 8) Si HAY siguiente OT, redirigimos directamente al PDF del reporte 80mm
             try:
                 report_name = 'mrp_work_queue.report_workorder_80mm'
-
-                # 👈 Odoo 17/18: se llama así, sobre env['ir.actions.report'],
-                # NO sobre el record de la acción.
-                pdf, _ = env['ir.actions.report']._render_qweb_pdf(
-                    report_name,
-                    [next_wo.id],
-                )
-
-                if not pdf:
-                    _logger.error("Render del reporte 80mm devolvió contenido vacío.")
-                    return request.render('mrp_work_queue.wo_finish_result', {
-                        'ok': True,
-                        'message': msg,
-                    })
-
-                safe_name = (next_wo.name or '').replace('/', '_')
-                filename = f"OT_80mm_{safe_name}.pdf"
-
-                headers = [
-                    # Tipo correcto de PDF…
-                    ('Content-Type', 'application/pdf'),
-                    ('Content-Length', len(pdf)),
-                    # …pero con Content-Disposition 'attachment' para forzar DESCARGA.
-                    ('Content-Disposition', content_disposition(filename)),
-                ]
-
-                _logger.info(
-                    "Enviando PDF 80mm como descarga directa para WO %s (%s)",
-                    next_wo.name,
-                    next_wo.id,
-                )
-
-                return request.make_response(pdf, headers=headers)
-
+                url = "/report/pdf/%s/%s" % (report_name, next_wo.id)
+                _logger.info("Redirigiendo a %s para descargar próxima OT %s (%s)", url, next_wo.name, next_wo.id)
+                return request.redirect(url)
             except Exception as e:
-                _logger.exception("Error al generar PDF de siguiente OT de cola: %s", e)
+                _logger.exception("Error al redirigir al PDF de siguiente OT de cola: %s", e)
                 # fallback: al menos mostramos el mensaje de cierre
                 return request.render('mrp_work_queue.wo_finish_result', {
                     'ok': True,
