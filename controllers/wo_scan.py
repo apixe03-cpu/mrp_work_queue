@@ -3,7 +3,7 @@ import logging
 import json
 
 from odoo import http, _, fields as odoo_fields
-from odoo.http import request
+from odoo.http import request, content_disposition
 from werkzeug.exceptions import NotFound
 
 _logger = logging.getLogger(__name__)
@@ -240,15 +240,58 @@ class WoScanController(http.Controller):
                     'message': msg,
                 })
 
-            # 🔹 8) Si HAY siguiente OT, redirigimos directamente al PDF del reporte 80mm
+            # 🔹 8) Si HAY siguiente OT, generamos el PDF y lo devolvemos como ARCHIVO DESCARGABLE
             try:
-                # Usamos el mismo nombre técnico de reporte que el botón
-                report_name = 'mrp_work_queue.report_workorder_80mm'
-                url = "/report/pdf/%s/%s" % (report_name, next_wo.id)
-                _logger.info("Redirigiendo a %s para descargar próxima OT %s (%s)", url, next_wo.name, next_wo.id)
-                return request.redirect(url)
+                report_action = env.ref(
+                    'mrp_work_queue.action_report_mrp_workorder_80mm',
+                    raise_if_not_found=False,
+                ) or env['ir.actions.report']._get_report_from_name(
+                    'mrp_work_queue.report_workorder_80mm'
+                )
+
+                if not report_action:
+                    _logger.warning("No se encontró la acción de reporte 80mm.")
+                    return request.render('mrp_work_queue.wo_finish_result', {
+                        'ok': True,
+                        'message': msg,
+                    })
+
+                _logger.info(
+                    "Generando PDF 80mm (para descarga directa) para WO %s (%s) con reporte %s",
+                    next_wo.name,
+                    next_wo.id,
+                    report_action.report_name,
+                )
+
+                # Renderizar el PDF en servidor.
+                # Odoo suele aceptar una lista de IDs
+                result = report_action._render_qweb_pdf([next_wo.id])
+                if isinstance(result, (list, tuple)):
+                    pdf_content = result[0]
+                else:
+                    pdf_content = result
+
+                if not pdf_content:
+                    _logger.error("Render del reporte 80mm devolvió contenido vacío.")
+                    return request.render('mrp_work_queue.wo_finish_result', {
+                        'ok': True,
+                        'message': msg,
+                    })
+
+                safe_name = (next_wo.name or '').replace('/', '_')
+                filename = f"OT_80mm_{safe_name}.pdf"
+
+                headers = [
+                    # ⚠️ Usamos application/octet-stream para forzar descarga,
+                    # no para que el navegador intente mostrarlo en un visor.
+                    ('Content-Type', 'application/octet-stream'),
+                    ('Content-Length', len(pdf_content)),
+                    ('Content-Disposition', content_disposition(filename)),
+                ]
+                return request.make_response(pdf_content, headers=headers)
+
             except Exception as e:
-                _logger.exception("Error al redirigir al PDF de siguiente OT de cola: %s", e)
+                _logger.exception("Error al generar PDF de siguiente OT de cola: %s", e)
                 # fallback: al menos mostramos el mensaje de cierre
                 return request.render('mrp_work_queue.wo_finish_result', {
                     'ok': True,
