@@ -257,10 +257,13 @@ class WoScanController(http.Controller):
                 data_payload,
             )
 
+            csrf_token = request.csrf_token()
+
             return request.render('mrp_work_queue.wo_finish_download', {
                 'ok': True,
                 'message': msg,
                 'data_payload': data_payload,
+                'csrf_token': csrf_token,
             })
 
         except Exception as e:

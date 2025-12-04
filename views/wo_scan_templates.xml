@@ -50,8 +50,11 @@
             <p>Se está descargando la siguiente orden de la cola...</p>
 
             <form id="pdf_form" action="/report/download" method="post" style="display:none;">
-                <input type="hidden" name="data" t-att-value="data_payload"/>
-                <input type="hidden" name="token" value="terminal_token"/>
+              <input type="hidden" name="data" t-att-value="data_payload"/>
+              <!-- token de descarga (cualquiera) -->
+              <input type="hidden" name="token" value="terminal_token"/>
+              <!-- CSRF REAL que Odoo espera -->
+              <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
             </form>
 
             <script>
