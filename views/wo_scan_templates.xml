@@ -168,10 +168,16 @@
                       } else if(action === 'clear') {
                           activeInput.value = '';
                       } else if(val !== null) {
-                          if (val === '.' && currentVal.includes('.')) return;
+                          if (val === '.') {
+                              if (currentVal.includes('.')) return;
+                          }
                           
-                          if ((currentVal === '0' || currentVal === '') && val !== '.') {
-                              activeInput.value = val;
+                          if (currentVal === '0' || currentVal === '') {
+                              if (val !== '.') {
+                                  activeInput.value = val;
+                              } else {
+                                  activeInput.value = currentVal + val;
+                              }
                           } else {
                               activeInput.value = currentVal + val;
                           }
